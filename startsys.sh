@@ -93,9 +93,11 @@ install(){
         elif [[ x"${release}" == x"ubuntu" ]]; then
             apt update -y
             apt install -y vim wget curl lrzsz tar lsof nmap dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip
+            update-ca-certificates
         elif [[ x"${release}" == x"debian" ]]; then
             apt update -y
             apt install -y vim wget curl lrzsz tar lsof nmap dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip
+            update-ca-certificates
         fi
         if [ ! -e /usr/local/bin/tcping ];then
             wget -O /tmp/tcping_Linux_static.tar.gz https://${GITHUB_DOWNLOAD_URL}/pouriyajamshidi/tcping/releases/latest/download/tcping_Linux_static.tar.gz
