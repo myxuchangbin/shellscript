@@ -2,9 +2,8 @@
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 clear
 #=================================================
-#   System Required: CentOS/Debian/Ubuntu
-#   Description: Realm管理脚本，个人使用，请酌情参考
-#   Author: https://github.com/myxuchangbin
+#   Description: Realm管理脚本，个人使用，仅供参考
+#   From: https://github.com/myxuchangbin/shellscript
 #=================================================
 
 stty erase ^?
@@ -215,8 +214,9 @@ echo '
     "mode": "ipv4_then_ipv6",
     "protocol": "tcp_and_udp",
     "nameservers": [
+      "1.1.1.1:53",
       "8.8.8.8:53",
-      "8.8.4.4:53"
+      "223.5.5.5:53"
     ],
     "min_ttl": 0,
     "max_ttl": 3600,
@@ -578,7 +578,7 @@ fi
 
     read -e -p "按任意键继续，如有配置错误请使用 Ctrl+C 退出。" temp
     if [[ "${tunnel_type}" == n ]]; then
-        JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports"}'
+        JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports"}'
         JSON=${JSON/listening_ports/$listening_ports}
         JSON=${JSON/remote_addresses/$remote_addresses}
         JSON=${JSON/remote_ports/$remote_ports}
@@ -586,7 +586,7 @@ fi
         echo $temp >$realm_conf_path
     else
         if [[ "${tunnel_mode}" == ws ]]; then
-            JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat"}'
+            JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat"}'
             JSON=${JSON/listening_ports/$listening_ports}
             JSON=${JSON/remote_addresses/$remote_addresses}
             JSON=${JSON/remote_ports/$remote_ports}
@@ -600,7 +600,7 @@ fi
             temp=$(jq --argjson data $JSON '.endpoints += [$data]' $realm_conf_path)
             echo $temp >$realm_conf_path
         elif [[ "${tunnel_mode}" == tls ]]; then
-            JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"tls;sni=domain.com;servername=domain.com"}'
+            JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"tls;sni=domain.com;servername=domain.com"}'
             JSON=${JSON/listening_ports/$listening_ports}
             JSON=${JSON/remote_addresses/$remote_addresses}
             JSON=${JSON/remote_ports/$remote_ports}
@@ -613,7 +613,7 @@ fi
             temp=$(jq --argjson data $JSON '.endpoints += [$data]' $realm_conf_path)
             echo $temp >$realm_conf_path
         elif [[ "${tunnel_mode}" == wss ]]; then
-            JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat;tls;sni=domain.com;servername=domain.com"}'
+            JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat;tls;sni=domain.com;servername=domain.com"}'
             JSON=${JSON/listening_ports/$listening_ports}
             JSON=${JSON/remote_addresses/$remote_addresses}
             JSON=${JSON/remote_ports/$remote_ports}
@@ -873,7 +873,7 @@ Reload_Realm(){
         trans_conf=$(sed -n "${i}p" $raw_conf_path)
         eachconf_retrieve
         if [[ "${tunnel_type}" == n ]]; then
-            JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports"}'
+            JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports"}'
             JSON=${JSON/listening_ports/$listening_ports}
             JSON=${JSON/remote_addresses/$remote_addresses}
             JSON=${JSON/remote_ports/$remote_ports}
@@ -881,7 +881,7 @@ Reload_Realm(){
             echo $temp >$realm_conf_path
         else
             if [[ "${tunnel_mode}" == ws ]]; then
-                JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat"}'
+                JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat"}'
                 JSON=${JSON/listening_ports/$listening_ports}
                 JSON=${JSON/remote_addresses/$remote_addresses}
                 JSON=${JSON/remote_ports/$remote_ports}
@@ -895,7 +895,7 @@ Reload_Realm(){
                 temp=$(jq --argjson data $JSON '.endpoints += [$data]' $realm_conf_path)
                 echo $temp >$realm_conf_path
             elif [[ "${tunnel_mode}" == tls ]]; then
-                JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"tls;sni=domain.com;servername=domain.com"}'
+                JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"tls;sni=domain.com;servername=domain.com"}'
                 JSON=${JSON/listening_ports/$listening_ports}
                 JSON=${JSON/remote_addresses/$remote_addresses}
                 JSON=${JSON/remote_ports/$remote_ports}
@@ -908,7 +908,7 @@ Reload_Realm(){
                 temp=$(jq --argjson data $JSON '.endpoints += [$data]' $realm_conf_path)
                 echo $temp >$realm_conf_path
             elif [[ "${tunnel_mode}" == wss ]]; then
-                JSON='{"listen":"0.0.0.0:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat;tls;sni=domain.com;servername=domain.com"}'
+                JSON='{"listen":"[::]:listening_ports","remote":"remote_addresses:remote_ports","tunnel_type":"ws;host=example.com;path=/chat;tls;sni=domain.com;servername=domain.com"}'
                 JSON=${JSON/listening_ports/$listening_ports}
                 JSON=${JSON/remote_addresses/$remote_addresses}
                 JSON=${JSON/remote_ports/$remote_ports}
