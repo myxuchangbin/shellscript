@@ -302,6 +302,7 @@ sed -i '/net.ipv4.tcp_moderate_rcvbuf/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_retries2/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_slow_start_after_idle/d' /etc/sysctl.conf
 sed -i '/net.ipv4.route.gc_timeout/d' /etc/sysctl.conf
+sed -i '/net.ipv6.bindv6only/d' /etc/sysctl.conf
 sed -i '/fs.file-max/d' /etc/sysctl.conf
 sed -i '/fs.inotify.max_user_instances/d' /etc/sysctl.conf
 sed -i '/vm.swappiness/d' /etc/sysctl.conf
@@ -355,6 +356,7 @@ net.ipv4.tcp_moderate_rcvbuf = 1
 net.ipv4.tcp_retries2 = 8
 net.ipv4.tcp_slow_start_after_idle = 0
 net.ipv4.route.gc_timeout = 100
+net.ipv6.bindv6only = 0
 fs.file-max = 512000
 fs.inotify.max_user_instances = 8192
 vm.swappiness = 0
