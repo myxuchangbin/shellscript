@@ -53,8 +53,8 @@ elif [[ x"${release}" == x"ubuntu" ]]; then
         echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+    if [[ ${os_version} -lt 9 ]]; then
+        echo -e "${red}请使用 Debian 9 或更高版本的系统！${plain}\n" && exit 1
     fi
 fi
 
@@ -86,9 +86,9 @@ install(){
                 yum -y install epel-release
                 yum -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nmap nload screen nano python-devel python-pip python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils ntpdate gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat tcpdump bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo
                 update-ca-trust force-enable
-            elif [ ${os_version} -eq 8 ]; then
+            else
                 dnf -y install epel-release
-                dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nmap nload screen nano python2-devel python2-pip python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat tcpdump bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
+                dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nmap nload screen nano python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat tcpdump bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
             fi
         elif [[ x"${release}" == x"ubuntu" ]]; then
             apt update -y
@@ -154,7 +154,7 @@ set_securite(){
                 fi
                 ntpdate ${NTPSERVER}
                 hwclock -w
-            elif [ ${os_version} -eq 8 ]; then
+            else
                 if [ `timedatectl | grep "Time zone" | grep -c "${TIMEZONE}"` -eq 0 ];then
                     timedatectl set-timezone ${TIMEZONE}
                     echo "server ${NTPSERVER} iburst" >>/etc/chrony.conf
@@ -230,10 +230,18 @@ set_file(){
     else
         echo -e "\nulimit -SHn 512000" >> /etc/profile
     fi
-    if ! grep -q "pam_limits.so" /etc/pam.d/common-session;then
+    if [ -e /etc/pam.d/common-session ];then
+        if ! grep -q "pam_limits.so" /etc/pam.d/common-session;then
+            echo "session required pam_limits.so" >> /etc/pam.d/common-session
+        fi
+    else
         echo "session required pam_limits.so" >> /etc/pam.d/common-session
     fi
-    if ! grep -q "pam_limits.so" /etc/pam.d/common-session-noninteractive;then
+    if [ -e /etc/pam.d/common-session-noninteractive ];then
+        if ! grep -q "pam_limits.so" /etc/pam.d/common-session-noninteractive;then
+            echo "session required pam_limits.so" >> /etc/pam.d/common-session-noninteractive
+        fi
+    else
         echo "session required pam_limits.so" >> /etc/pam.d/common-session-noninteractive
     fi
     if grep -q "^DefaultLimitCORE" /etc/systemd/system.conf;then
@@ -401,7 +409,8 @@ check_bbr(){
 
 #优化系统熵值
 set_entropy(){
-    if [ `cat /proc/sys/kernel/random/entropy_avail` -lt 1000 ]; then
+    entropy_value=$(cat /proc/sys/kernel/random/entropy_avail)
+    if [[ ${entropy_value} -lt 1000 && ${entropy_value} -ne 256 ]]; then
         echo -e "${yellow}优化系统熵值${plain}"
         if [[ x"${release}" == x"centos" ]]; then
             yum -y install haveged
