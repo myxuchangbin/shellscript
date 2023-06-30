@@ -407,20 +407,33 @@ check_bbr(){
     fi
 }
 
-#优化系统熵值
+#优化系统熵池
 set_entropy(){
     entropy_value=$(cat /proc/sys/kernel/random/entropy_avail)
     if [[ ${entropy_value} -lt 1000 && ${entropy_value} -ne 256 ]]; then
-        echo -e "${yellow}优化系统熵值${plain}"
-        if [[ x"${release}" == x"centos" ]]; then
-            yum -y install haveged
-            systemctl enable --now haveged
-        elif [[ x"${release}" == x"ubuntu" ]]; then
-            apt install -y haveged
-            systemctl enable --now haveged
-        elif [[ x"${release}" == x"debian" ]]; then
-            apt install -y haveged
-            systemctl enable --now haveged
+        echo -e "${yellow}优化系统熵池${plain}"
+        if grep -q "rdrand" /proc/cpuinfo;then
+            if [[ x"${release}" == x"centos" ]]; then
+                yum -y install rng-tools
+                systemctl enable --now rngd
+            elif [[ x"${release}" == x"ubuntu" ]]; then
+                apt install -y rng-tools
+                systemctl enable --now rngd
+            elif [[ x"${release}" == x"debian" ]]; then
+                apt install -y rng-tools
+                systemctl enable --now rngd
+            fi
+        else
+            if [[ x"${release}" == x"centos" ]]; then
+                yum -y install haveged
+                systemctl enable --now haveged
+            elif [[ x"${release}" == x"ubuntu" ]]; then
+                apt install -y haveged
+                systemctl enable --now haveged
+            elif [[ x"${release}" == x"debian" ]]; then
+                apt install -y haveged
+                systemctl enable --now haveged
+            fi
         fi
         echo -e "${green}完成${plain}"
 
