@@ -162,7 +162,7 @@ install(){
     make linux test
     cd /usr/local/src
     [ -e haproxy-2.8.0 ] && rm -rf haproxy-2.8.0
-    wget -O haproxy-2.8.0.tar.gz http://www.haproxy.org/download/2.8/src/haproxy-2.8.0.tar.gz
+    wget -O haproxy-2.8.0.tar.gz https://www.haproxy.org/download/2.8/src/haproxy-2.8.0.tar.gz
     tar xvf haproxy-2.8.0.tar.gz
     cd haproxy-2.8.0
     make -j $(nproc) ARCH=x86_64 TARGET=linux-glibc USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 USE_SYSTEMD=1 USE_LUA=1 LUA_INC=/usr/local/src/lua-5.4.6/src/ LUA_LIB=/usr/local/src/lua-5.4.6/src/
