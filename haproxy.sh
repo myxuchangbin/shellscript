@@ -71,6 +71,8 @@ defaults
     timeout client          1m
     timeout server          1m
     retries                 3
+    maxconn                 20480
+    balance                 roundrobin
 
 listen stats
     mode    http
@@ -90,12 +92,12 @@ frontend lb-in2
         default_backend lb-out2
 
 backend lb-out1
-        server server1 1.1.1.1:1080 maxconn 20480 check inter 500 rise 2 fall 4 weight 100
-        server server2 1.0.0.1:1080 maxconn 20480 check inter 500 rise 2 fall 4 weight 100
+        server server1 1.1.1.1:1080 check inter 1s rise 2 fall 5 weight 100
+        server server2 1.0.0.1:1080 check inter 1s rise 2 fall 5 weight 100
 
 backend lb-out2
-        server server1 1.1.1.1:1080 maxconn 20480 check inter 500 rise 2 fall 4 weight 100
-        server server2 1.0.0.1:1080 maxconn 20480 check inter 500 rise 2 fall 4 weight 100
+        server server1 1.1.1.1:1080 check inter 1s rise 2 fall 5 weight 100
+        server server2 1.0.0.1:1080 check inter 1s rise 2 fall 5 weight 100
 EOF
 
     cat > /usr/lib/systemd/system/haproxy.service<<-EOF
