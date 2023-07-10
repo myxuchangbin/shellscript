@@ -108,9 +108,9 @@ install(){
         echo -e "${green}完成${plain}"
 }
 
-#优化安全及一些个性化设置
+#优化SSH安全及SELINUX设置
 set_securite(){
-    echo -e "${yellow}检查SeLinux并关闭${plain}"
+    echo -e "${yellow}优化SSH及SELINUX设置${plain}"
         if grep -q "^UseDNS" /etc/ssh/sshd_config;then
             sed -i '/^UseDNS/s/yes/no/' /etc/ssh/sshd_config
         else
@@ -126,7 +126,8 @@ set_securite(){
         else
            sed -i '$a PermitEmptyPasswords no' /etc/ssh/sshd_config
         fi
-        sed -i '/SELINUX/s/enforcing/disabled/' /etc/selinux/config && setenforce 0
+        sed -i '/^SELINUX/s/enforcing/disabled/' /etc/selinux/config && setenforce 0
+        sed -i '/^SELINUX/s/permissive/disabled/' /etc/selinux/config && setenforce 0
     echo -e "${green}完成${plain}"
     #安全提示：脚本输入k参数，会默认添加内部公钥到服务器，请谨慎运行！！！
     
