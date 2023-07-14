@@ -67,7 +67,7 @@ import_key=0
 if [ -n "$*" ]; then
     if echo "$*" | grep -qwi "cn"; then
         GITHUB_URL="gitclone.com"
-        GITHUB_RAW_URL="raw.iqiq.io"
+        GITHUB_RAW_URL="ghproxy.com/https://raw.githubusercontent.com"
         GITHUB_DOWNLOAD_URL="ghproxy.com/https://github.com"
         NTPSERVER="ntp1.aliyun.com"
         TIMEZONE="Asia/Shanghai"
