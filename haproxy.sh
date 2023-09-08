@@ -168,8 +168,10 @@ install(){
     cd haproxy-${targetversion}
     make -j $(nproc) ARCH=x86_64 TARGET=linux-glibc USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 USE_SYSTEMD=1 USE_LUA=1 LUA_INC=/usr/local/src/lua-5.4.6/src/ LUA_LIB=/usr/local/src/lua-5.4.6/src/
     make install PREFIX=/usr/local/haproxy
+    mkdir -p /var/spool/haproxy
     groupadd -g 200 haproxy
     useradd -u 200 -g 200 -d /var/spool/haproxy -s /sbin/nologin haproxy
+    chown haproxy:haproxy /var/spool/haproxy
     config_haproxy
     if [ -e /usr/local/haproxy/sbin/haproxy ]; then
         systemctl enable haproxy --now
