@@ -105,7 +105,9 @@ install_XrayR() {
     xrayrname=${apidomain}_${nodetype}_${nodeid}
     docker ps | grep -wq "xrayr_${xrayrname}"
     if [[ $? -eq 0 ]]; then
+        docker stop xrayr_${xrayrname}
         docker rm -f xrayr_${xrayrname}
+        docker network disconnect --force host xrayr_${xrayrname} >/dev/null 2>&1
     fi
     [ -e /opt/xrayr ] || mkdir -p /opt/xrayr/
     wget -N --no-check-certificate -O /opt/xrayr/config_${xrayrname}.yml https://raw.githubusercontent.com/XrayR-project/XrayR/master/main/config.yml.example
@@ -151,7 +153,7 @@ install_XrayR() {
 hello(){
     echo ""
     echo -e "${yellow}XrayR Docker版一键安装脚本，支持节点多开${plain}"
-    echo -e "${yellow}支持系统:  CentOS 7+, Debian8+, Ubuntu16+${plain}"
+    echo -e "${yellow}支持系统:  CentOS7+, Debian9+, Ubuntu18+${plain}"
     echo ""
 }
 
