@@ -122,6 +122,9 @@ install_XrayR() {
     sed -i "s/123/${apikey}/" /opt/xrayr/config_${xrayrname}.yml
     sed -i "s/41/${nodeid}/" /opt/xrayr/config_${xrayrname}.yml
     sed -i "s/NodeType: V2ray/NodeType: ${nodetype}/" /opt/xrayr/config_${xrayrname}.yml
+    if [[ x"${security}" == x"none" ]]; then
+        sed -i "s/EnableREALITY: true/EnableREALITY: false/" /opt/xrayr/config_${xrayrname}.yml
+    fi
     sed -i "s/CertMode: dns/CertMode: ${certmode}/" /opt/xrayr/config_${xrayrname}.yml
     sed -i "s/CertDomain: \"node1.test.com\"/CertDomain: \"${certdomain}\"/" /opt/xrayr/config_${xrayrname}.yml
     sed -i "s/Provider: alidns/Provider: ${provider}/" /opt/xrayr/config_${xrayrname}.yml
@@ -162,7 +165,7 @@ help(){
     echo "使用示例：bash $0 -p SSpanel -w http://www.domain.com:80 -k apikey -i 10 -t V2ray"
     echo ""
     echo "  -h     显示帮助信息"
-    echo "  -p     【必填】指定前端面板类型，默认为SSpanel，可选：SSpanel,V2board,NewV2board,PMpanel,Proxypanel,V2RaySocks"
+    echo "  -p     【必填】指定前端面板类型，默认为SSpanel，可选：SSpanel,NewV2board,PMpanel,Proxypanel,V2RaySocks"
     echo "  -w     【必填】指定WebApi地址，例：http://www.domain.com:80"
     echo "  -k     【必填】指定WebApikey"
     echo "  -i     【必填】指定节点ID"
@@ -179,6 +182,7 @@ help(){
 apihost=www.domain.com
 apikey=demokey
 nodeid=demoid
+security=none
 certmode=none
 certdomain=cert.domain.com
 provider=alidns
