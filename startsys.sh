@@ -302,6 +302,7 @@ sed -i '/net.ipv4.tcp_tw_recycle/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_tw_reuse/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_fin_timeout/d' /etc/sysctl.conf
 sed -i '/net.ipv4.ip_local_port_range/d' /etc/sysctl.conf
+sed -i '/net.ipv4.ip_local_reserved_ports/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.all.accept_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.default.accept_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.all.secure_redirects/d' /etc/sysctl.conf
@@ -356,6 +357,7 @@ net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_fin_timeout = 30
 net.ipv4.ip_local_port_range = 16384 65535
+#net.ipv4.ip_local_reserved_ports = 10001-10005
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 net.ipv4.conf.all.secure_redirects = 0
