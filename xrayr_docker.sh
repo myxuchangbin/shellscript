@@ -110,8 +110,8 @@ install_XrayR() {
         docker network disconnect --force host xrayr_${xrayrname} >/dev/null 2>&1
     fi
     [ -e /opt/xrayr ] || mkdir -p /opt/xrayr/
-    wget -N --no-check-certificate -O /opt/xrayr/config_${xrayrname}.yml https://raw.githubusercontent.com/XrayR-project/XrayR/master/main/config.yml.example
-    wget -N --no-check-certificate -O /opt/xrayr/dns_${xrayrname}.json https://raw.githubusercontent.com/XrayR-project/XrayR/master/main/dns.json
+    wget -N --no-check-certificate -O /opt/xrayr/config_${xrayrname}.yml https://raw.githubusercontent.com/XrayR-project/XrayR/master/release/config/config.yml.example
+    wget -N --no-check-certificate -O /opt/xrayr/dns_${xrayrname}.json https://raw.githubusercontent.com/XrayR-project/XrayR/master/release/config/dns.json
     if [[ $? -ne 0 ]]; then
         echo -e "${red}下载失败，请确保服务器可以连接github.com${plain}"
         exit 1
