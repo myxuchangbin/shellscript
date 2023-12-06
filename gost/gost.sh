@@ -44,7 +44,7 @@ if [ ${customversion} = 0 ]; then
   fi
 fi
 if [ ${CN} == 1 ]; then
-    URL="https://ghproxy.com/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost-linux-amd64-${targetversion}.gz"
+    URL="https://mirror.ghproxy.com/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost-linux-amd64-${targetversion}.gz"
     GITHUB_RAW_URL="raw.fastgit.org"
     GITHUB_URL="hub.fastgit.org"
 else

@@ -248,7 +248,7 @@ Install_Realm(){
   read -p "请选择(默认国外): " download
   [[ -z ${download} ]] && download="1"
   if [[ ${download} == [2] ]]; then
-      URL="https://ghproxy.com/https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"
+      URL="https://mirror.ghproxy.com/https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"
   elif [[ ${download} == [1] ]]; then
       URL="https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"    
   else
@@ -337,7 +337,7 @@ Update_Realm(){
         fi
         [[ -z ${download} ]] && download="1"
         if [[ ${download} == [2] ]]; then
-            URL="https://ghproxy.com/https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"
+            URL="https://mirror.ghproxy.com/https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"
         elif [[ ${download} == [1] ]]; then
             URL="https://github.com/zhboner/realm/releases/latest/download/realm-x86_64-unknown-linux-musl.tar.gz"    
         else
@@ -759,7 +759,7 @@ Edit_Realm(){
 #更新脚本
 Update_Shell(){
     echo -e "当前版本为 [ ${shell_version} ]，开始检测最新版本..."
-    ol_version=$(curl --silent --location --connect-timeout 5 --retry 1 "https://ghproxy.com/https://raw.githubusercontent.com/myxuchangbin/shellscript/master/realm.sh" | grep "shell_version=" | head -1 | awk -F '=|"' '{print $3}')
+    ol_version=$(curl --silent --location --connect-timeout 5 --retry 1 "https://mirror.ghproxy.com/https://raw.githubusercontent.com/myxuchangbin/shellscript/master/realm.sh" | grep "shell_version=" | head -1 | awk -F '=|"' '{print $3}')
     if [[ x"${ol_version}" == x ]]; then
         print_error "版本获取失败，可到GitHub更新脚本"
         before_show_menu
@@ -771,7 +771,7 @@ Update_Shell(){
         [[ -z "${update_confirm}" ]] && update_confirm="y"
         case $update_confirm in
         [yY][eE][sS] | [yY])
-          wget -N --no-check-certificate https://ghproxy.com/https://raw.githubusercontent.com/myxuchangbin/shellscript/master/realm.sh -O ${shelldir}/realm.sh && chmod +x ${shelldir}/realm.sh
+          wget -N --no-check-certificate https://mirror.ghproxy.com/https://raw.githubusercontent.com/myxuchangbin/shellscript/master/realm.sh -O ${shelldir}/realm.sh && chmod +x ${shelldir}/realm.sh
           print_ok "更新完成"
           print_ok "请通过 bash $0 重新运行脚本"
           exit 0
