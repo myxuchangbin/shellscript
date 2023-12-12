@@ -227,6 +227,8 @@ echo '
     "use_udp": true,
     "tcp_timeout": 5,
     "udp_timeout": 30,
+    "tcp_keepalive": 15,
+    "tcp_keepalive_probe": 3,
     "send_proxy": false,
     "send_proxy_version": 2,
     "accept_proxy": false,
