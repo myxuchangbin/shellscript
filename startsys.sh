@@ -136,13 +136,13 @@ set_securite(){
         sleep 5
         [ -e /root/.ssh ] || mkdir -p /root/.ssh
         [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
-        if [ `grep -c "#pkey20220322" /root/.ssh/authorized_keys` -eq 0 ];then
-            wget -O /tmp/id_rsa_1024.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_1024.pub
-            if echo "03533eeb543c816baab80ef55330eca9  /tmp/id_rsa_1024.pub" | md5sum -c; then
-                cat /tmp/id_rsa_1024.pub >> /root/.ssh/authorized_keys
-                echo -e "\n#pkey20220322" >> /root/.ssh/authorized_keys
+        if [ `grep -c "#key20240220" /root/.ssh/authorized_keys` -eq 0 ];then
+            wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_4096.pub
+            if echo "ad5805c98fbdfdc486df5c970359024d  /tmp/id_rsa_4096.pub" | md5sum -c; then
+                cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
+                echo -e "\n#key20240220" >> /root/.ssh/authorized_keys
             fi
-            rm -f /tmp/id_rsa_1024.pub
+            rm -f /tmp/id_rsa_4096.pub
         fi
         echo -e "${green}完成${plain}"
     fi
