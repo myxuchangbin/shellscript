@@ -573,10 +573,10 @@ set_drivers(){
     if [[ x"${release}" == x"centos" ]]; then
         echo -e "${yellow}优化外置驱动${plain}"
         if [ ! -e /etc/dracut.conf.d/virt-drivers.conf ];then
-            echo 'add_drivers+="xen-blkfront virtio_blk"' >> /etc/dracut.conf.d/virt-drivers.conf
+            echo 'add_drivers+=" xen-blkfront virtio_blk "' >> /etc/dracut.conf.d/virt-drivers.conf
         else
             if ! grep -wq "xen-blkfront" /etc/dracut.conf.d/virt-drivers.conf;then
-                echo 'add_drivers+="xen-blkfront virtio_blk"' >> /etc/dracut.conf.d/virt-drivers.conf
+                echo 'add_drivers+=" xen-blkfront virtio_blk "' >> /etc/dracut.conf.d/virt-drivers.conf
             fi
         fi
         echo -e "${green}完成${plain}"
