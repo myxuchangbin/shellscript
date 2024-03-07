@@ -235,6 +235,8 @@ echo '
     "accept_proxy_timeout": 5
   },
   "endpoints": [
+    "listen": "[::]:5000",
+    "remote": "1.1.1.1:443"
   ]
 }' > /opt/realm/config.json
 }
@@ -264,7 +266,7 @@ echo '
 [Unit]
 Description=Realm
 After=network-online.target
-Wants=network-online.target systemd-networkd-wait-online.service
+Wants=network-online.target
 
 [Service]
 LimitCORE=infinity
