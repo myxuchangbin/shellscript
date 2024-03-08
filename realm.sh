@@ -235,10 +235,7 @@ echo '
     "accept_proxy_timeout": 5
   },
   "endpoints": [
-    {
-      "listen": "0.0.0.0:5000",
-      "remote": "1.1.1.1:443"
-    }
+
   ]
 }' > /opt/realm/config.json
 }
