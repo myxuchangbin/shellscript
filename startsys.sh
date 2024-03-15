@@ -134,13 +134,16 @@ set_securite(){
     if [[ "${import_key}" == "1" ]]; then
         echo -e "${yellowflash}脚本正在添加内部ssh公钥到服务器，取消请按Ctrl+C${plain}"
         sleep 5
-        [ -e /root/.ssh ] || mkdir -p /root/.ssh
+        KEY_CHECKSUM="ad5805c98fbdfdc486df5c970359024d"
+        [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
         [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
         if [ `grep -c "#key20240220" /root/.ssh/authorized_keys` -eq 0 ];then
             wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_4096.pub
-            if echo "ad5805c98fbdfdc486df5c970359024d  /tmp/id_rsa_4096.pub" | md5sum -c; then
+            if echo "$KEY_CHECKSUM  /tmp/id_rsa_4096.pub" | md5sum -c; then
                 cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
                 echo -e "\n#key20240220" >> /root/.ssh/authorized_keys
+            else
+                echo -e "${red}公钥校验失败，终止添加${plain}"
             fi
             rm -f /tmp/id_rsa_4096.pub
         fi
