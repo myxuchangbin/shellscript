@@ -7,28 +7,36 @@ plain='\033[0m'
 
 cur_dir=$(pwd)
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}错误：${plain} 必须使用root用户运行此脚本！\n" && exit 1
+# 检查是否为root用户
+if [[ $EUID -ne 0 ]]; then
+    # 使用国际化错误信息
+    echo -e "${red}Error: ${plain}This script must be run as root user!\n"
+    # 给出指导性建议
+    echo "You can use sudo to run this script if you have the permission."
+    exit 1
+fi
 
-# check os
-if [[ -f /etc/redhat-release ]]; then
-    release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
-    release="debian"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-elif cat /proc/version | grep -Eqi "debian"; then
-    release="debian"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
+# 封装的检测函数
+detect_os() {
+    local release=$1
+    local file=$2
+    if cat "$file" | grep -Eqi "$release"; then
+        echo "$release"
+    fi
+}
+
+# 检测操作系统
+release=""
+if release=$(detect_os "centos" /etc/issue) || release=$(detect_os "red hat|redhat" /etc/issue) || release=$(detect_os "debian" /etc/issue) || release=$(detect_os "ubuntu" /etc/issue); then
+# 如果 /etc/issue 没有检测到，尝试 /proc/version
+    if [ -z "$release" ]; then
+        release=$(detect_os "debian" /proc/version) || release=$(detect_os "ubuntu" /proc/version) || release=$(detect_os "centos|red hat|redhat" /proc/version)
+    fi
 else
     echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
 
+# 检查系统架构
 if [ "$(getconf WORD_BIT)" != '32' ] && [ "$(getconf LONG_BIT)" != '64' ] ; then
     echo "${red}未本软件不支持 32 位系统(x86)，请使用 64 位系统(x86_64)，如果检测有误，请联系作者${plain}\n"
     exit 2
@@ -36,27 +44,31 @@ fi
 
 os_version=""
 
-# os version
+# 获取操作系统版本
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
+elif [[ -f /etc/lsb-release ]]; then
     os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
 fi
 
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
-    fi
-fi
+# 检查操作系统版本是否满足要求
+case "${release}" in
+    centos)
+        if [[ ${os_version} -le 6 ]]; then
+            echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+        fi
+        ;;
+    ubuntu)
+        if [[ ${os_version} -lt 18 ]]; then
+            echo -e "${red}请使用 Ubuntu 18 或更高版本的系统！${plain}\n" && exit 1
+        fi
+        ;;
+    debian)
+        if [[ ${os_version} -lt 9 ]]; then
+            echo -e "${red}请使用 Debian 9 或更高版本的系统！${plain}\n" && exit 1
+        fi
+        ;;
+esac
 
 install_dep(){
         if [[ x"${release}" == x"centos" ]]; then
@@ -139,14 +151,23 @@ install_XrayR() {
     docker run --restart=always --log-opt max-size=5m --log-opt max-file=3 --name xrayr_${xrayrname} -d -v /opt/xrayr/config_${xrayrname}.yml:/etc/XrayR/config.yml -v /opt/xrayr/dns_${xrayrname}.json:/etc/XrayR/dns.json --network=host ghcr.io/xrayr-project/xrayr:latest
     docker ps | grep -wq "xrayr_${xrayrname}"
     if [[ $? -eq 0 ]]; then
-        crontab -l > /tmp/cronconf
-        if grep -wq "xrayr_${xrayrname}" /tmp/cronconf;then
-            sed -i "/xrayr_${xrayrname}/d" /tmp/cronconf
+        # 使用mktemp创建安全的临时文件
+        tmpfile=$(mktemp)
+        # 备份当前crontab到临时文件
+        crontab -l > "${tmpfile}"
+        # 检查并删除已存在的相同任务
+        if grep -wq "xrayr_${xrayrname}" "${tmpfile}"; then
+            sed -i "/xrayr_${xrayrname}/d" "${tmpfile}"
         fi
-        echo "0 6 * * *  docker restart xrayr_${xrayrname}" >> /tmp/cronconf
-        crontab /tmp/cronconf
-        rm -f /tmp/cronconf
-        echo -e "${green}将添加每天6点0分自动重启，以释放节点内存![${nodeid}]${plain}"
+        # 添加新的重启任务
+        echo "0 6 * * *  docker restart xrayr_${xrayrname}" >> "${tmpfile}"
+        # 替换当前crontab
+        crontab "${tmpfile}"
+        # 删除临时文件
+        rm -f "${tmpfile}"
+        # 输出确认信息
+        echo -e "${green}将添加每天6点0分自动重启，以释放节点内存！[${nodeid}]${plain}"
+        # 检查新的crontab中是否包含任务
         crontab -l | grep -w "xrayr_${xrayrname}"
         echo -e "${green}节点[${nodeid}]安装完成!${plain}"
         echo -e "${green}如无法使用，输入命令查看日志：docker logs xrayr_${xrayrname} ${plain}"
@@ -325,14 +346,27 @@ if [[ ! "${nodeid}" =~ ^[0-9]+$ ]]; then
 fi 
 
 echo -e "${green}即将开始安装，取消请按Ctrl+C${plain}"
-countdown=10
-while [ $countdown -gt 0 ]
-do
-   echo -ne ${yellow}${countdown}${plain}
-   (( countdown-- ))
-   sleep 1
-   echo -ne "\r   \r"
-done
+# 倒计时函数，增加边界条件检查
+countdown() {
+    # 检查输入是否为正整数
+    if ! [[ $1 =~ ^[0-9]+$ ]]; then
+        echo -e "${red}Error: Countdown value must be a positive integer.${plain}"
+        return 1
+    fi
+
+    local countdown=$1
+    while [ $countdown -gt 0 ]
+    do
+        echo -ne "${yellow}${countdown}${plain}"
+        (( countdown-- ))
+        sleep 1
+        # 使用控制序列清空当前行并回到行首
+        echo -ne "\r"
+    done
+}
+
+# 调用倒计时函数，传入10作为参数
+countdown 10
 install_dep
 install_docker
 install_XrayR
