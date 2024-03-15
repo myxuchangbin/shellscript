@@ -79,7 +79,8 @@ install_dep(){
 }
 
 install_docker() {
-    if [[ ! `command -v docker` ]]; then
+    command_exists=$(command -v docker)
+    if [[ -z "$command_exists" ]]; then
         if [[ x"${release}" == x"centos" ]]; then
             yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             yum install docker-ce docker-ce-cli containerd.io -y
