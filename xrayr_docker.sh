@@ -361,7 +361,7 @@ countdown() {
         (( countdown-- ))
         sleep 1
         # 使用控制序列清空当前行并回到行首
-        echo -ne "\r"
+        echo -ne "\r   \r"
     done
 }
 
