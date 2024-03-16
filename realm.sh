@@ -215,7 +215,6 @@ echo '
     "protocol": "tcp_and_udp",
     "nameservers": [
       "1.1.1.1:53",
-      "8.8.8.8:53",
       "223.5.5.5:53"
     ],
     "min_ttl": 0,
@@ -225,14 +224,15 @@ echo '
   "network": {
     "no_tcp": false,
     "use_udp": true,
+    "ipv6_only": false,
     "tcp_timeout": 5,
     "udp_timeout": 30,
-    "tcp_keepalive": 15,
-    "tcp_keepalive_probe": 3,
     "send_proxy": false,
     "send_proxy_version": 2,
     "accept_proxy": false,
-    "accept_proxy_timeout": 5
+    "accept_proxy_timeout": 5,
+    "tcp_keepalive": 15,
+    "tcp_keepalive_probe": 3
   },
   "endpoints": [
 
