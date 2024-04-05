@@ -16,22 +16,21 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
-# 封装的检测函数
-detect_os() {
-    local release=$1
-    local file=$2
-    if cat "$file" | grep -Eqi "$release"; then
-        echo "$release"
-    fi
-}
-
-# 检测操作系统
-release=""
-if release=$(detect_os "centos" /etc/issue) || release=$(detect_os "red hat|redhat" /etc/issue) || release=$(detect_os "debian" /etc/issue) || release=$(detect_os "ubuntu" /etc/issue); then
-# 如果 /etc/issue 没有检测到，尝试 /proc/version
-    if [ -z "$release" ]; then
-        release=$(detect_os "debian" /proc/version) || release=$(detect_os "ubuntu" /proc/version) || release=$(detect_os "centos|red hat|redhat" /proc/version)
-    fi
+# 检测操作系统版本
+if [[ -f /etc/redhat-release ]]; then
+    release="centos"
+elif cat /etc/issue | grep -Eqi "debian"; then
+    release="debian"
+elif cat /etc/issue | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+    release="centos"
+elif cat /proc/version | grep -Eqi "debian"; then
+    release="debian"
+elif cat /proc/version | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+    release="centos"
 else
     echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
