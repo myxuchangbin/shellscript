@@ -955,17 +955,17 @@ Time_Task(){
         1)
       echo -e "请设置每多少分钟重启Realm任务"   
       read -p "请设置分钟数: " type_m
-      echo "*/$type_m * * * *  /usr/bin/systemctl restart realm" >> /tmp/cronconf
+      echo "*/$type_m * * * *  systemctl restart realm" >> /tmp/cronconf
         ;;
         2)
       echo -e "请设置每多少小时重启Realm任务"   
       read -p "请设置小时数: " type_h
-      echo "0 */$type_h * * *  /usr/bin/systemctl restart realm" >> /tmp/cronconf
+      echo "0 */$type_h * * *  systemctl restart realm" >> /tmp/cronconf
         ;;
         3)
       echo -e "请设置每多少天重启Realm任务"    
       read -p "请设置天数: " type_d
-      echo "0 0 */$type_d * *  /usr/bin/systemctl restart realm" >> /tmp/cronconf
+      echo "0 0 */$type_d * *  systemctl restart realm" >> /tmp/cronconf
         ;;
         *)
         clear
