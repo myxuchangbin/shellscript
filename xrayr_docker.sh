@@ -19,20 +19,25 @@ fi
 # 检测操作系统版本
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
-    release="debian"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-elif cat /proc/version | grep -Eqi "debian"; then
-    release="debian"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
 else
-    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
+    issue_content=$(cat /etc/issue)
+    proc_version_content=$(cat /proc/version)
+
+    if echo "$issue_content" | grep -Eqi "debian"; then
+        release="debian"
+    elif echo "$issue_content" | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+    elif echo "$issue_content" | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+    elif echo "$proc_version_content" | grep -Eqi "debian"; then
+        release="debian"
+    elif echo "$proc_version_content" | grep -Eqi "ubuntu"; then
+        release="ubuntu"
+    elif echo "$proc_version_content" | grep -Eqi "centos|red hat|redhat"; then
+        release="centos"
+    else
+        echo -e "${red}未检测到系统版本，请联系作者！${plain}\n" && exit 1
+    fi
 fi
 
 # 检查系统架构
