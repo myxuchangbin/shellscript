@@ -87,6 +87,17 @@ install(){
                 yum -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python-devel python-pip python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils ntpdate gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo
                 update-ca-trust force-enable
             else
+                #fix https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
+                if [ ${os_version} -eq 8 ]; then
+                    (
+                       . "/etc/os-release"
+                       if [ "$ID" == "almalinux" ]; then
+                           if ! rpm -q "gpg-pubkey-ced7258b-6525146f" > /dev/null 2>&1; then
+                               rpm --import "https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux"
+                           fi
+                       fi
+                    )
+                fi
                 dnf -y install epel-release
                 dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
             fi
