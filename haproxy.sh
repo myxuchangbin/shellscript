@@ -155,18 +155,18 @@ install(){
         apt install wget gcc openssl libssl-dev libpcre3 libpcre3-dev zlib1g-dev openssh-server libreadline-dev libsystemd-dev -y
     fi
     cd /usr/local/src
-    [ -e lua-5.4.6 ] && rm -rf lua-5.4.6
-    wget -O lua-5.4.6.tar.gz http://www.lua.org/ftp/lua-5.4.6.tar.gz
-    tar zxf lua-5.4.6.tar.gz
-    cd lua-5.4.6
+    [ -e lua-5.4.7 ] && rm -rf lua-5.4.7
+    wget -O lua-5.4.7.tar.gz http://www.lua.org/ftp/lua-5.4.7.tar.gz
+    tar zxf lua-5.4.7.tar.gz
+    cd lua-5.4.7
     make linux test
     cd /usr/local/src
-    targetversion=$(wget -qO- -t1 -T2 "https://www.haproxy.org/download/2.8/src/releases.json" | grep "latest_release" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
+    targetversion=$(wget -qO- -t1 -T2 "https://www.haproxy.org/download/3.0/src/releases.json" | grep "latest_release" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/,//g;s/ //g')
     [ -e haproxy-${targetversion} ] && rm -rf haproxy-${targetversion}
-    wget -O haproxy-${targetversion}.tar.gz https://www.haproxy.org/download/2.8/src/haproxy-${targetversion}.tar.gz
+    wget -O haproxy-${targetversion}.tar.gz https://www.haproxy.org/download/3.0/src/haproxy-${targetversion}.tar.gz
     tar xvf haproxy-${targetversion}.tar.gz
     cd haproxy-${targetversion}
-    make -j $(nproc) ARCH=x86_64 TARGET=linux-glibc USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 USE_SYSTEMD=1 USE_LUA=1 LUA_INC=/usr/local/src/lua-5.4.6/src/ LUA_LIB=/usr/local/src/lua-5.4.6/src/
+    make -j $(nproc) ARCH_FLAGS='-g' TARGET=linux-glibc USE_PCRE=1 USE_OPENSSL=1 USE_ZLIB=1 USE_SYSTEMD=1 USE_LUA=1 LUA_INC=/usr/local/src/lua-5.4.7/src/ LUA_LIB=/usr/local/src/lua-5.4.7/src/
     make install PREFIX=/usr/local/haproxy
     mkdir -p /var/spool/haproxy
     groupadd -g 200 haproxy
