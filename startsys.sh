@@ -140,11 +140,9 @@ set_securite(){
         sed -i '/^SELINUX/s/enforcing/disabled/' /etc/selinux/config && setenforce 0
         sed -i '/^SELINUX/s/permissive/disabled/' /etc/selinux/config && setenforce 0
     echo -e "${green}完成${plain}"
-    #安全提示：脚本输入k参数，会默认添加内部公钥到服务器，请谨慎运行！！！
-    
+    #安全提示：脚本输入k参数时，会默认添加ssh公钥到服务器，请谨慎运行！
     if [[ "${import_key}" == "1" ]]; then
-        echo -e "${yellowflash}脚本正在添加内部ssh公钥到服务器，取消请按Ctrl+C${plain}"
-        sleep 5
+        echo -e "${yellow}添加SSH公钥到服务器${plain}"
         KEY_CHECKSUM="ad5805c98fbdfdc486df5c970359024d"
         [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
         [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
@@ -622,5 +620,8 @@ main(){
 main
 
 rm -f startsys.sh && history -c
-echo -e "BBR拥塞控制状态：${bbr_run_status}"
-echo -e "优化运行完成，${blackflash}如有问题或更好的建议请反馈${plain}" 
+if [[ "${import_key}" == "1" ]]; then
+    echo -e "${yellowflash}【注意】已添加SSH公钥至/root/.ssh/authorized_keys。如非自愿，请手动删除${plain}"
+fi
+echo -e "【提示】BBR拥塞控制状态：${bbr_run_status}"
+echo -e "【提示】优化完成，如有问题或建议，请反馈" 
