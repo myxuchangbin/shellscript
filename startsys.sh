@@ -288,6 +288,8 @@ sed -i '/net.ipv4.conf.all.rp_filter/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.default.rp_filter/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.all.accept_source_route/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.default.accept_source_route/d' /etc/sysctl.conf
+sed -i '/net.ipv6.conf.all.accept_source_route/d' /etc/sysctl.conf
+sed -i '/net.ipv6.conf.default.accept_source_route/d' /etc/sysctl.conf
 sed -i '/kernel.sysrq/d' /etc/sysctl.conf
 sed -i '/kernel.core_uses_pid/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_syncookies/d' /etc/sysctl.conf
@@ -317,6 +319,8 @@ sed -i '/net.ipv4.ip_local_port_range/d' /etc/sysctl.conf
 sed -i '/net.ipv4.ip_local_reserved_ports/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.all.accept_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.default.accept_redirects/d' /etc/sysctl.conf
+sed -i '/net.ipv6.conf.all.accept_redirects/d' /etc/sysctl.conf
+sed -i '/net.ipv6.conf.default.accept_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.all.secure_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.conf.default.secure_redirects/d' /etc/sysctl.conf
 sed -i '/net.ipv4.tcp_no_metrics_save/d' /etc/sysctl.conf
@@ -343,6 +347,8 @@ net.ipv4.conf.all.rp_filter = 1
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.all.accept_source_route = 0
 net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
 kernel.sysrq = 0
 kernel.core_uses_pid = 1
 net.ipv4.tcp_syncookies = 1
@@ -371,6 +377,8 @@ net.ipv4.ip_local_port_range = 16384 65535
 #net.ipv4.ip_local_reserved_ports = 10001-10005
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
 net.ipv4.conf.all.secure_redirects = 0
 net.ipv4.conf.default.secure_redirects = 0
 net.ipv4.tcp_no_metrics_save = 1
@@ -393,6 +401,7 @@ net.ipv4.tcp_congestion_control = bbr
 EOF
 /sbin/sysctl -p /etc/sysctl.conf
 /sbin/sysctl -w net.ipv4.route.flush=1
+/sbin/sysctl -w net.ipv6.route.flush=1
 echo -e "${green}完成${plain}"
 }
 
