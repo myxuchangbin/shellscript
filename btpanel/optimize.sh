@@ -3,23 +3,23 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 
 if [ $(whoami) != "root" ];then
-	echo "请使用root权限执行命令！"
-	exit 1;
+    echo "请使用root权限执行命令！"
+    exit 1;
 fi
 if [ ! -d /www/server/panel ] || [ ! -f /etc/init.d/bt ];then
-	echo "未安装面板"
-	exit 1
+    echo "未安装面板"
+    exit 1
 fi 
 
 if [ ! -f /www/server/panel/data/userInfo.json ]; then
-	echo "{\"uid\":1000,\"username\":\"admin\",\"serverid\":1}" > /www/server/panel/data/userInfo.json
+    echo "{\"uid\":1000,\"username\":\"admin\",\"serverid\":1}" > /www/server/panel/data/userInfo.json
 fi
 echo "已去除面板强制绑定账号."
 
 Layout_file="/www/server/panel/BTPanel/templates/default/layout.html";
 JS_file="/www/server/panel/BTPanel/static/bt.js";
 if [ `grep -c "<script src=\"/static/bt.js\"></script>" $Layout_file` -eq '0' ];then
-	sed -i '/{% block scripts %} {% endblock %}/a <script src="/static/bt.js"></script>' $Layout_file;
+    sed -i '/{% block scripts %} {% endblock %}/a <script src="/static/bt.js"></script>' $Layout_file;
 fi;
 wget -q https://raw.githubusercontent.com/myxuchangbin/shellscript/refs/heads/master/btpanel/bt.js -O $JS_file;
 echo "已去除各种计算题与延时等待."
@@ -31,7 +31,7 @@ echo "已去除创建网站自动创建的垃圾文件."
 
 sed -i "s/root \/www\/server\/nginx\/html/return 400/" /www/server/panel/class/panelSite.py
 if [ -f /www/server/panel/vhost/nginx/0.default.conf ]; then
-	sed -i "s/root \/www\/server\/nginx\/html/return 400/" /www/server/panel/vhost/nginx/0.default.conf
+    sed -i "s/root \/www\/server\/nginx\/html/return 400/" /www/server/panel/vhost/nginx/0.default.conf
 fi
 echo "已关闭未绑定域名提示页面."
 
@@ -47,10 +47,10 @@ sed -i "s/run_thread(cloud_check_domain,(domain,))/return/" /www/server/panel/cl
 echo "已去除面板日志与绑定域名上报."
 
 if [ ! -f /www/server/panel/data/not_recommend.pl ]; then
-	echo "True" > /www/server/panel/data/not_recommend.pl
+    echo "True" > /www/server/panel/data/not_recommend.pl
 fi
 if [ ! -f /www/server/panel/data/not_workorder.pl ]; then
-	echo "True" > /www/server/panel/data/not_workorder.pl
+    echo "True" > /www/server/panel/data/not_workorder.pl
 fi
 echo "已关闭活动推荐与在线客服."
 
@@ -65,7 +65,7 @@ plugin_file="/www/server/panel/data/plugin.json"
 if [ -f ${plugin_file} ];then
     chattr -i /www/server/panel/data/plugin.json
     sed -i 's|"endtime": -1|"endtime": 999999999999|g' /www/server/panel/data/plugin.json
-	sed -i 's|"pro": -1|"pro": 0|g' /www/server/panel/data/plugin.json
+    sed -i 's|"pro": -1|"pro": 0|g' /www/server/panel/data/plugin.json
     chattr +i /www/server/panel/data/plugin.json
 else
     cd /www/server/panel/data
