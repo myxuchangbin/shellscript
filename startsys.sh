@@ -111,10 +111,10 @@ install(){
             update-ca-certificates
         fi
         if [ ! -e /usr/local/bin/tcping ];then
-            wget -O /tmp/tcping_Linux.tar.gz https://${GITHUB_DOWNLOAD_URL}/pouriyajamshidi/tcping/releases/latest/download/tcping_Linux.tar.gz
-            tar xf /tmp/tcping_Linux.tar.gz -C /usr/local/bin/
+            wget -O /tmp/tcping_Linux_static.tar.gz https://${GITHUB_DOWNLOAD_URL}/pouriyajamshidi/tcping/releases/latest/download/tcping_Linux_static.tar.gz
+            tar xf /tmp/tcping_Linux_static.tar.gz -C /usr/local/bin/
             chmod +x /usr/local/bin/tcping
-            rm -f /tmp/tcping_Linux.tar.gz
+            rm -f /tmp/tcping_Linux_static.tar.gz
         fi
         echo -e "${green}完成${plain}"
 }
