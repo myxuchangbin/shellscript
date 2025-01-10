@@ -39,7 +39,7 @@ if [ ${customversion} = 0 ]; then
   # 获取最新版本号
   targetversion=$(wget -qO- -t1 -T2 "https://api.github.com/repos/ginuerzh/gost/releases/latest" | grep "tag_name" | head -n 1 | awk -F ":" '{print $2}' | sed 's/\"//g;s/v//g;s/,//g;s/ //g')
   if [ -z $targetversion ]; then
-      echo -e "获取Gost最新版本号失败，请使用参数 -v 2.11.5 指定版本号来安装"
+      echo -e "获取Gost最新版本号失败，请使用参数 -v 2.12.0 指定版本号来安装"
       exit 1
   fi
 fi
@@ -109,7 +109,7 @@ fi
 echo "0 6 * * *  systemctl restart gost.service" >> /tmp/gostcronconf
 crontab /tmp/gostcronconf
 rm -f /tmp/gostcronconf
-echo -e "已设置每天6:00定时重启gost服务，以释放服务器内存压力"
+echo -e "已设定每天6:00定时重启gost服务，以释放内存压力"
 
 systemctl daemon-reload
 systemctl enable gost.service --now

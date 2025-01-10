@@ -40,7 +40,7 @@ wget -N --no-check-certificate https://raw.fastgit.org/myxuchangbin/shellscript/
 ## startsys.sh
 
 - 脚本说明: 系统开箱优化
-- 系统支持: Centos7/8 Debian Ubuntu
+- 系统支持: Centos Debian Ubuntu
 
 ### 使用方法：
 ``` bash

@@ -965,7 +965,7 @@ Time_Task(){
         3)
       echo -e "请设置每多少天重启Realm任务"    
       read -p "请设置天数: " type_d
-      echo "0 0 */$type_d * *  systemctl restart realm" >> /tmp/cronconf
+      echo "0 6 */$type_d * *  systemctl restart realm" >> /tmp/cronconf
         ;;
         *)
         clear
@@ -1079,11 +1079,11 @@ ${Green_font_prefix}21.${Font_color_suffix} 添加一条 Realm 规则
 ${Green_font_prefix}22.${Font_color_suffix} 删除一条 Realm 规则
 ${Green_font_prefix}23.${Font_color_suffix} 修改一条 Realm 规则
 ${Green_font_prefix}24.${Font_color_suffix} 查看所有 Realm 规则
-${Green_font_prefix}25.${Font_color_suffix} 重新加载 Realm 规则(手动修改/opt/realm/rawconf后进行加载)
-${Green_font_prefix}26.${Font_color_suffix} 初始化   Realm 规则(会清空现有规则)
+${Green_font_prefix}25.${Font_color_suffix} 重新加载 Realm 规则(加载/opt/realm/rawconf文件，可手动修改)
+${Green_font_prefix}26.${Font_color_suffix} 初始化   Realm 规则(清空现有规则)
 —————————————— 其他选项 ——————————————
 ${Green_font_prefix}31.${Font_color_suffix} 备份/恢复配置
-${Green_font_prefix}32.${Font_color_suffix} 添加定时重启任务(可以缓解长时间运行内存泄漏的问题)
+${Green_font_prefix}32.${Font_color_suffix} 添加定时重启任务
 ${Green_font_prefix}33.${Font_color_suffix} 添加自动更新Realm
 ${Green_font_prefix}40.${Font_color_suffix} 退出脚本
 "
