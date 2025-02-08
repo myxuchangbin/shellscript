@@ -45,9 +45,9 @@ if [ ${customversion} = 0 ]; then
 fi
 if [ ${CN} == 1 ]; then
     if [ ${targetversion} \> 2.11.5 ]; then
-      URL="https://mirror.ghproxy.com/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost_${targetversion}_linux_amd64.tar.gz"
+      URL="https://ghfast.top/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost_${targetversion}_linux_amd64.tar.gz"
     else
-      URL="https://mirror.ghproxy.com/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost-linux-amd64-${targetversion}.gz"
+      URL="https://ghfast.top/https://github.com/ginuerzh/gost/releases/download/v${targetversion}/gost-linux-amd64-${targetversion}.gz"
     fi
     GITHUB_RAW_URL="raw.fastgit.org"
     GITHUB_URL="hub.fastgit.org"
