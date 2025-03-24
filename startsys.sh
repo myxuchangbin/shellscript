@@ -145,15 +145,34 @@ set_securite(){
         echo -e "${yellow}添加SSH公钥${plain}"
         [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
         [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
-        if [ `grep -c "ed25519 256-0324" /root/.ssh/authorized_keys` -eq 0 ];then
-            echo -e "\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQGxmeW+E1nNIzRZZrwMwbmrsGKZy9Gnu1NSt84mXT1 ed25519 256-0324" >> /root/.ssh/authorized_keys
+        #新系统中ssh-rsa（rsa/SHA1）签名算法默认被禁用，老客户端用ED25519密钥登录（推荐优先ED25519其次4096位RSA）
+        #https://help.aliyun.com/zh/ecs/user-guide/resolve-an-rsa-key-based-connection-failure-to-an-instance
+        if [ `grep -c "ed25519 256-250324" /root/.ssh/authorized_keys` -eq 0 ];then
+            echo -e "\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQGxmeW+E1nNIzRZZrwMwbmrsGKZy9Gnu1NSt84mXT1 ed25519 256-250324" >> /root/.ssh/authorized_keys
             if [ $? -eq 0 ]; then
-                echo -e "${green}完成${plain}"
+                echo -e "${green}ED25519公钥添加完成${plain}"
             else
-                echo -e "${yellow}公钥添加出错，请检查${plain}"
+                echo -e "${yellow}ED25519公钥添加出错，请检查${plain}"
             fi
         else
-            echo -e "${yellow}公钥已存在，无需重复添加${plain}"
+            echo -e "${yellow}ED25519公钥已存在，无需重复添加${plain}"
+        fi
+        if [ `grep -c "rsa 4096-250324" /root/.ssh/authorized_keys` -eq 0 ];then
+            KEY_CHECKSUM="ef7d690265ea090c77025d133198e21f"
+            wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_4096.pub
+            if echo "$KEY_CHECKSUM  /tmp/id_rsa_4096.pub" | md5sum -c; then
+                cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
+                if [ $? -eq 0 ]; then
+                    echo -e "${green}RSA公钥添加完成${plain}"
+                else
+                    echo -e "${yellow}RSA公钥添加出错，请检查${plain}"
+                fi
+            else
+                echo -e "${red}RSA公钥校验失败，终止添加${plain}"
+            fi
+            rm -f /tmp/id_rsa_4096.pub
+        else
+            echo -e "${yellow}RSA公钥已存在，无需重复添加${plain}"
         fi
     fi
     echo -e "${yellow}检查系统时区${plain}"
