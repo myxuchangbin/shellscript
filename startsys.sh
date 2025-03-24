@@ -142,21 +142,19 @@ set_securite(){
     echo -e "${green}完成${plain}"
     #安全提示：脚本输入k参数时，会默认添加ssh公钥到服务器，请谨慎运行！
     if [[ "${import_key}" == "1" ]]; then
-        echo -e "${yellow}添加SSH公钥到服务器${plain}"
-        KEY_CHECKSUM="ad5805c98fbdfdc486df5c970359024d"
+        echo -e "${yellow}添加SSH公钥${plain}"
         [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
         [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
-        if [ `grep -c "#key20240220" /root/.ssh/authorized_keys` -eq 0 ];then
-            wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_4096.pub
-            if echo "$KEY_CHECKSUM  /tmp/id_rsa_4096.pub" | md5sum -c; then
-                cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
-                echo -e "\n#key20240220" >> /root/.ssh/authorized_keys
+        if [ `grep -c "ed25519 256-0324" /root/.ssh/authorized_keys` -eq 0 ];then
+            echo -e "\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQGxmeW+E1nNIzRZZrwMwbmrsGKZy9Gnu1NSt84mXT1 ed25519 256-0324" >> /root/.ssh/authorized_keys
+            if [ $? -eq 0 ]; then
+                echo -e "${green}完成${plain}"
             else
-                echo -e "${red}公钥校验失败，终止添加${plain}"
+                echo -e "${yellow}公钥添加出错，请检查${plain}"
             fi
-            rm -f /tmp/id_rsa_4096.pub
+        else
+            echo -e "${yellow}公钥已存在，无需重复添加${plain}"
         fi
-        echo -e "${green}完成${plain}"
     fi
     echo -e "${yellow}检查系统时区${plain}"
         if [[ x"${release}" == x"centos" ]]; then
