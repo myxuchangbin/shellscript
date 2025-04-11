@@ -501,6 +501,14 @@ set ignorecase
 "vim20210527
 EOF
             source /etc/bashrc
+            [ -e ~/.vimrc ] || touch ~/.vimrc
+            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
+cat << EOF >> ~/.vimrc
+set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
+set termencoding=utf-8
+set encoding=utf-8
+EOF
+            fi
             echo -e "${green}完成${plain}"
         fi
     elif [[ x"${release}" == x"ubuntu" ]]; then
@@ -522,6 +530,14 @@ set ignorecase
 "vim20210527
 EOF
             source /etc/bash.bashrc
+            [ -e ~/.vimrc ] || touch ~/.vimrc
+            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
+cat << EOF >> ~/.vimrc
+set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
+set termencoding=utf-8
+set encoding=utf-8
+EOF
+            fi
             echo -e "${green}完成${plain}"
         fi
     elif [[ x"${release}" == x"debian" ]]; then
@@ -543,6 +559,14 @@ set ignorecase
 "vim20210527
 EOF
             source /etc/bash.bashrc
+            [ -e ~/.vimrc ] || touch ~/.vimrc
+            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
+cat << EOF >> ~/.vimrc
+set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
+set termencoding=utf-8
+set encoding=utf-8
+EOF
+            fi
             echo -e "${green}完成${plain}"
         fi
     fi
