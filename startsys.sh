@@ -84,7 +84,7 @@ install(){
                 yum clean all
                 yum makecache
                 yum -y install epel-release
-                yum -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python-devel python-pip python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils ntpdate gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo
+                yum -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python-devel python-pip python3-devel python3-pip socat nc mtr bind-utils yum-utils ntpdate gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo
                 update-ca-trust force-enable
             else
                 #fix https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
@@ -99,15 +99,15 @@ install(){
                     )
                 fi
                 dnf -y install epel-release
-                dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python3-devel python3-pip socat nc ioping mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools fping vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
+                dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python3-devel python3-pip socat nc mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
             fi
         elif [[ x"${release}" == x"ubuntu" ]]; then
             apt update -y
-            apt install -y vim wget curl lrzsz tar lsof nmap dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip
+            apt install -y vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales-all
             update-ca-certificates
         elif [[ x"${release}" == x"debian" ]]; then
             apt update -y
-            apt install -y vim wget curl lrzsz tar lsof nmap dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip
+            apt install -y vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales-all
             update-ca-certificates
         fi
         if [ ! -e /usr/local/bin/tcping ];then
