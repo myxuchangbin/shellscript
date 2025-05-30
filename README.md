@@ -7,7 +7,7 @@
 
 ### 使用方法：
 ``` bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/myxuchangbin/shellscript/master/mysqld-listen.sh && chmod +x mysqld-listen.sh
+wget -N --no-check-certificate https://raw.githubusercontent.com/myxuchangbin/shellscript/main/mysqld-listen.sh && chmod +x mysqld-listen.sh
 crontab -e
 */5 * * * *    mysqld-listen.sh    #每隔5分钟，执行一次mysqld-listen.sh脚本。
 ```
@@ -27,11 +27,11 @@ crontab -e
 
 ### 使用方法：
 ``` bash
-bash <(curl -s https://raw.githubusercontent.com/myxuchangbin/shellscript/master/startsys.sh)
+bash <(curl -s https://raw.githubusercontent.com/myxuchangbin/shellscript/main/startsys.sh)
 ```
 国内加速：
 ``` bash
-bash <(curl -s https://raw.fastgit.org/myxuchangbin/shellscript/master/startsys.sh) cn
+bash <(curl -s https://ghfast.top/https://raw.githubusercontent.com/myxuchangbin/shellscript/main/startsys.sh) cn
 ```
 
 ## 解锁Netflix

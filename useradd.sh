@@ -15,9 +15,9 @@ fi
 # 配置公钥文件
 set_keys(){
 	mkdir -p --mode=700 /home/$name/.ssh
-	wget -O /home/$name/id_rsa_1024.pub https://github.com/myxuchangbin/shellscript/raw/master/id_rsa_1024.pub
-	cat /home/$name/id_rsa_1024.pub >> /home/$name/.ssh/authorized_keys
-	rm -f /home/$name/id_rsa_1024.pub
+	#wget -O /home/$name/id_rsa_1024.pub https://github.com/myxuchangbin/shellscript/raw/main/id_rsa_1024.pub
+	#cat /home/$name/id_rsa_1024.pub >> /home/$name/.ssh/authorized_keys
+	#rm -f /home/$name/id_rsa_1024.pub
 	chmod 600 /home/$name/.ssh/authorized_keys
 	chown -R "$name"."$name" /home/$name/.ssh
 }

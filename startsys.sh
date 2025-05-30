@@ -159,7 +159,7 @@ set_securite(){
         fi
         if [ `grep -c "rsa 4096-250324" /root/.ssh/authorized_keys` -eq 0 ];then
             KEY_CHECKSUM="ef7d690265ea090c77025d133198e21f"
-            wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/id_rsa_4096.pub
+            wget -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/id_rsa_4096.pub
             if echo "$KEY_CHECKSUM  /tmp/id_rsa_4096.pub" | md5sum -c; then
                 cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
                 if [ $? -eq 0 ]; then
@@ -648,7 +648,7 @@ set_drivers(){
 set_welcome(){
     echo -e "${yellow}个性化登录展示${plain}"
     if [ ! -e /etc/profile.d/motd.sh ];then
-        wget -O /etc/profile.d/motd.sh https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/master/motd.sh
+        wget -O /etc/profile.d/motd.sh https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/motd.sh
         chmod a+x /etc/profile.d/motd.sh
     fi
     echo -e "${green}完成${plain}"
