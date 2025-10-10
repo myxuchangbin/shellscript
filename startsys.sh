@@ -221,8 +221,8 @@ set_securite(){
         else
             echo -e "${yellow}RSA公钥已存在，无需重复添加${plain}"
         fi
-        #导入密钥结束
     fi
+    #导入密钥结束
     echo -e "${yellow}检查系统时区${plain}"
         if [[ x"${release}" == x"centos" ]]; then
             if [ ${os_version} -eq 7 ]; then
