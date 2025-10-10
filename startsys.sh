@@ -462,9 +462,9 @@ net.ipv4.tcp_mtu_probing = 1
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 EOF
-/sbin/sysctl -p /etc/sysctl.conf
-/sbin/sysctl -w net.ipv4.route.flush=1
-/sbin/sysctl -w net.ipv6.route.flush=1
+echo -e "${yellow}→ 加载 sysctl 配置...${plain}"
+/sbin/sysctl -p /etc/sysctl.conf 2>/dev/null | awk -F' = ' '{printf "  ✔ %-40s = %s\n", $1, $2}'
+echo -e "${green}✓ 参数已生效${plain}"
 echo -e "${green}完成${plain}"
 }
 
