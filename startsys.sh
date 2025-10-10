@@ -76,9 +76,9 @@ if [ -n "$*" ]; then
         import_key=1
     fi
 fi
-#安装一些常用软件包
+#安装常用软件包
 install(){
-        echo -e "${yellow}安装一些常用软件包${plain}"
+        echo -e "${yellow}安装常用软件包${plain}"
         if [[ x"${release}" == x"centos" ]]; then
             if [ ${os_version} -eq 7 ]; then
                 yum clean all
@@ -125,28 +125,69 @@ install(){
         echo -e "${green}完成${plain}"
 }
 
-#优化SSH安全及SELINUX设置
+#优化SSH安全及其他设置
 set_securite(){
-    echo -e "${yellow}优化SSH及SELINUX设置${plain}"
-        if grep -q "^UseDNS" /etc/ssh/sshd_config;then
+    echo -e "${yellow}优化SSH安全及SELINUX设置${plain}"
+        if grep -q "^UseDNS" /etc/ssh/sshd_config; then
             sed -i '/^UseDNS/s/yes/no/' /etc/ssh/sshd_config
         else
            sed -i '$a UseDNS no' /etc/ssh/sshd_config
         fi
-        if grep -q "^GSSAPIAuthentication" /etc/ssh/sshd_config;then
+        if grep -q "^GSSAPIAuthentication" /etc/ssh/sshd_config; then
             sed -i '/^GSSAPIAuthentication/s/yes/no/' /etc/ssh/sshd_config
         else
            sed -i '$a GSSAPIAuthentication no' /etc/ssh/sshd_config
         fi
-        if grep -q "^PermitEmptyPasswords" /etc/ssh/sshd_config;then
+        if grep -q "^PermitEmptyPasswords" /etc/ssh/sshd_config; then
             sed -i '/^PermitEmptyPasswords/s/yes/no/' /etc/ssh/sshd_config
         else
            sed -i '$a PermitEmptyPasswords no' /etc/ssh/sshd_config
         fi
+        if grep -q "^IgnoreRhosts" /etc/ssh/sshd_config; then
+            sed -i '/^IgnoreRhosts/s/no/yes/' /etc/ssh/sshd_config
+        else
+           sed -i '$a IgnoreRhosts yes' /etc/ssh/sshd_config
+        fi
+        if grep -q "^HostbasedAuthentication" /etc/ssh/sshd_config; then
+            sed -i '/^HostbasedAuthentication/s/yes/no/' /etc/ssh/sshd_config
+        else
+           sed -i '$a HostbasedAuthentication no' /etc/ssh/sshd_config
+        fi
+        if grep -q "^UsePAM" /etc/ssh/sshd_config; then
+            sed -i '/^UsePAM/s/no/yes/' /etc/ssh/sshd_config
+        else
+           sed -i '$a UsePAM yes' /etc/ssh/sshd_config
+        fi
+        if grep -qiP '^Protocol' /etc/ssh/sshd_config; then
+            sed -i "/^Protocol/cProtocol 2" /etc/ssh/sshd_config
+        else
+           sed -i '$a Protocol 2' /etc/ssh/sshd_config
+        fi
+        if grep -qiP '^MaxAuthTries' /etc/ssh/sshd_config; then
+            sed -i '/^MaxAuthTries[[:space:]]/cMaxAuthTries 3' /etc/ssh/sshd_config
+        else
+            sed -i '$a MaxAuthTries 3' /etc/ssh/sshd_config
+        fi
+        if grep -qiP '^ClientAliveInterval' /etc/ssh/sshd_config; then
+            sed -i '/^ClientAliveInterval[[:space:]]/cClientAliveInterval 300' /etc/ssh/sshd_config
+        else
+            sed -i '$a ClientAliveInterval 300' /etc/ssh/sshd_config
+        fi
+        if grep -qiP '^LoginGraceTime' /etc/ssh/sshd_config; then
+            sed -i '/^LoginGraceTime[[:space:]]/cLoginGraceTime 30' /etc/ssh/sshd_config
+        else
+            sed -i '$a LoginGraceTime 30' /etc/ssh/sshd_config
+        fi
+        if grep -qiP '^MaxStartups' /etc/ssh/sshd_config; then
+            sed -i '/^MaxStartups[[:space:]]/cMaxStartups 10:30:60' /etc/ssh/sshd_config
+        else
+            sed -i '$a MaxStartups 10:30:60' /etc/ssh/sshd_config
+        fi
         sed -i '/^SELINUX/s/enforcing/disabled/' /etc/selinux/config && setenforce 0
         sed -i '/^SELINUX/s/permissive/disabled/' /etc/selinux/config && setenforce 0
     echo -e "${green}完成${plain}"
-    #安全提示：脚本输入k参数时，会默认添加ssh公钥到服务器，请谨慎运行！
+    #安全提示：脚本输入k参数时，将添加ssh公钥到服务器，请谨慎运行
+    #导入密钥开始
     if [[ "${import_key}" == "1" ]]; then
         echo -e "${yellow}添加SSH公钥${plain}"
         [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
@@ -180,6 +221,7 @@ set_securite(){
         else
             echo -e "${yellow}RSA公钥已存在，无需重复添加${plain}"
         fi
+        #导入密钥结束
     fi
     echo -e "${yellow}检查系统时区${plain}"
         if [[ x"${release}" == x"centos" ]]; then
@@ -208,9 +250,9 @@ set_securite(){
             fi 
         fi
     echo -e "${green}完成${plain}"
-    echo -e "${yellow}检查历史命令是否记录时间点${plain}"
-        if [ `grep -c "#history20210402" /etc/profile` -eq 0 ];then
-            echo "export HISTTIMEFORMAT=\"%F %T \`whoami\` \" #history20210402" >> /etc/profile
+    echo -e "${yellow}设置历史命令记录时间点${plain}"
+        if ! grep -q 'HISTTIMEFORMAT=' /etc/profile; then
+            echo "export HISTTIMEFORMAT=\"%F %T \`whoami\` \"" >> /etc/profile
         fi
     echo -e "${green}完成${plain}"
     echo -e "${yellow}禁止键盘重启系统命令${plain}"
@@ -245,18 +287,16 @@ set_securite(){
 #优化系统最大句柄数限制
 set_file(){
     echo -e "${yellow}优化系统最大句柄数限制${plain}"
-    if [ `grep -c "#limits20210402" /etc/security/limits.conf` -eq 0 ];then
-        echo "root soft nofile 512000" >> /etc/security/limits.conf
-        echo "root hard nofile 512000" >> /etc/security/limits.conf
-        echo "* soft nofile 512000" >> /etc/security/limits.conf
-        echo "* hard nofile 512000" >> /etc/security/limits.conf
-        echo "* soft nproc  512000" >> /etc/security/limits.conf
-        echo "* hard nproc  512000" >> /etc/security/limits.conf
-        echo -e "\n#limits20210402" >> /etc/security/limits.conf
-        if [[ x"${release}" == x"centos" ]]; then
-            if [ ${os_version} -eq 7 ]; then
-                sed -i 's/4096/65535/' /etc/security/limits.d/20-nproc.conf
-            fi
+    limits=/etc/security/limits.conf
+    grep -Fxq "root soft nofile 512000"  $limits || echo "root soft nofile 512000"  >> $limits
+    grep -Fxq "root hard nofile 512000"  $limits || echo "root hard nofile 512000"  >> $limits
+    grep -Fxq "* soft nofile 512000"     $limits || echo "* soft nofile 512000"     >> $limits
+    grep -Fxq "* hard nofile 512000"     $limits || echo "* hard nofile 512000"     >> $limits
+    grep -Fxq "* soft nproc 512000"      $limits || echo "* soft nproc 512000"      >> $limits
+    grep -Fxq "* hard nproc 512000"      $limits || echo "* hard nproc 512000"      >> $limits
+    if [[ x"${release}" == x"centos" ]]; then
+        if [ ${os_version} -eq 7 ]; then
+            [[ -f /etc/security/limits.d/20-nproc.conf ]] && sed -i 's/4096/65535/' /etc/security/limits.d/20-nproc.conf
         fi
     fi
     ulimit -SHn 512000
@@ -428,7 +468,7 @@ EOF
 echo -e "${green}完成${plain}"
 }
 
-#检查bbr当前状态
+#检查bbr状态
 check_bbr(){
     kernel_version=$(uname -r | awk -F "-" '{print $1}')
     if [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "4" ]] && [[ $(echo ${kernel_version} | awk -F'.' '{print $2}') -ge 9 ]] || [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "5" ]] || [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "6" ]]; then
@@ -489,92 +529,95 @@ set_entropy(){
 # 个性化vim编辑器
 set_vimserver(){
     if [[ x"${release}" == x"centos" ]]; then
-        if [ `grep -c "vim20210527" /etc/vimrc` -eq 0 ];then
-            echo -e "${yellow}个性化vim编辑器${plain}"
-cat << EOF >> /etc/vimrc
-set cursorline
-set autoindent
-set showmode
-set ruler
-syntax on
-filetype on
-set smartindent
-set tabstop=4
-set shiftwidth=4
-set hlsearch
-set incsearch
-set ignorecase
-"vim20210527
-EOF
-            source /etc/bashrc
-            [ -e ~/.vimrc ] || touch ~/.vimrc
-            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
-cat << EOF >> ~/.vimrc
-set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
-set termencoding=utf-8
-set encoding=utf-8
-EOF
-            fi
-            echo -e "${green}完成${plain}"
-        fi
+        echo -e "${yellow}个性化vim编辑器${plain}"
+        sys_vimrc=/etc/vimrc
+        user_vimrc=~/.vimrc
+        for opt in \
+            'set cursorline' \
+            'set autoindent' \
+            'set showmode' \
+            'set ruler' \
+            'syntax on' \
+            'filetype on' \
+            'set smartindent' \
+            'set tabstop=4' \
+            'set shiftwidth=4' \
+            'set hlsearch' \
+            'set incsearch' \
+            'set ignorecase'
+        do
+            grep -Fxq "$opt" "$sys_vimrc" || echo "$opt" >> "$sys_vimrc"
+        done
+
+        [[ -e $user_vimrc ]] || touch "$user_vimrc"
+        for enc in \
+            'set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom' \
+            'set termencoding=utf-8' \
+            'set encoding=utf-8'
+        do
+            grep -Fxq "$enc" "$user_vimrc" || echo "$enc" >> "$user_vimrc"
+        done
+        echo -e "${green}完成${plain}"
     elif [[ x"${release}" == x"ubuntu" ]]; then
-        if [ `grep -c "vim20210527" /etc/vim/vimrc` -eq 0 ];then
-            echo -e "${yellow}个性化vim编辑器${plain}"
-cat << EOF >> /etc/vim/vimrc
-set cursorline
-set autoindent
-set showmode
-set ruler
-syntax on
-filetype on
-set smartindent
-set tabstop=4
-set shiftwidth=4
-set hlsearch
-set incsearch
-set ignorecase
-"vim20210527
-EOF
-            source /etc/bash.bashrc
-            [ -e ~/.vimrc ] || touch ~/.vimrc
-            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
-cat << EOF >> ~/.vimrc
-set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
-set termencoding=utf-8
-set encoding=utf-8
-EOF
-            fi
-            echo -e "${green}完成${plain}"
-        fi
+        echo -e "${yellow}个性化vim编辑器${plain}"
+        sys_vimrc=/etc/vim/vimrc
+        user_vimrc=~/.vimrc
+        for opt in \
+            'set cursorline' \
+            'set autoindent' \
+            'set showmode' \
+            'set ruler' \
+            'syntax on' \
+            'filetype on' \
+            'set smartindent' \
+            'set tabstop=4' \
+            'set shiftwidth=4' \
+            'set hlsearch' \
+            'set incsearch' \
+            'set ignorecase'
+        do
+            grep -Fxq "$opt" "$sys_vimrc" || echo "$opt" >> "$sys_vimrc"
+        done
+
+        [[ -e $user_vimrc ]] || touch "$user_vimrc"
+        for enc in \
+            'set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom' \
+            'set termencoding=utf-8' \
+            'set encoding=utf-8'
+        do
+            grep -Fxq "$enc" "$user_vimrc" || echo "$enc" >> "$user_vimrc"
+        done
+        echo -e "${green}完成${plain}"
     elif [[ x"${release}" == x"debian" ]]; then
-        if [ `grep -c "vim20210527" /etc/vim/vimrc` -eq 0 ];then
-            echo -e "${yellow}个性化vim编辑器${plain}"
-cat << EOF >> /etc/vim/vimrc
-set cursorline
-set autoindent
-set showmode
-set ruler
-syntax on
-filetype on
-set smartindent
-set tabstop=4
-set shiftwidth=4
-set hlsearch
-set incsearch
-set ignorecase
-"vim20210527
-EOF
-            source /etc/bash.bashrc
-            [ -e ~/.vimrc ] || touch ~/.vimrc
-            if [ `grep -c "encoding=utf-8" ~/.vimrc` -eq 0 ];then
-cat << EOF >> ~/.vimrc
-set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom
-set termencoding=utf-8
-set encoding=utf-8
-EOF
-            fi
-            echo -e "${green}完成${plain}"
-        fi
+        echo -e "${yellow}个性化vim编辑器${plain}"
+        sys_vimrc=/etc/vim/vimrc
+        user_vimrc=~/.vimrc
+        for opt in \
+            'set cursorline' \
+            'set autoindent' \
+            'set showmode' \
+            'set ruler' \
+            'syntax on' \
+            'filetype on' \
+            'set smartindent' \
+            'set tabstop=4' \
+            'set shiftwidth=4' \
+            'set hlsearch' \
+            'set incsearch' \
+            'set ignorecase'
+        do
+            grep -Fxq "$opt" "$sys_vimrc" || echo "$opt" >> "$sys_vimrc"
+        done
+
+        [[ -e $user_vimrc ]] || touch "$user_vimrc"
+        for enc in \
+            'set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom' \
+            'set termencoding=utf-8' \
+            'set encoding=utf-8'
+        do
+            grep -Fxq "$enc" "$user_vimrc" || echo "$enc" >> "$user_vimrc"
+        done
+        echo -e "${green}完成${plain}"
     fi
 }
 
@@ -677,7 +720,7 @@ main
 
 rm -f startsys.sh && history -c
 if [[ "${import_key}" == "1" ]]; then
-    echo -e "${yellowflash}【注意】已添加SSH公钥至/root/.ssh/authorized_keys。如非自愿，请手动删除${plain}"
+    echo -e "${yellowflash}【注意】 /root/.ssh/authorized_keys 已写入 SSH 公钥。若非本人操作，请立即手动删除${plain}"
 fi
 echo -e "【提示】BBR拥塞控制状态：${bbr_run_status}"
 echo -e "【提示】优化完成，如有问题或建议，请反馈" 
