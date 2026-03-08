@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #-------------------------------------------------------------
 # /etc/profile.d/motd.sh - Login Welcome!
-# 2025-09
+# 2026-03
 #-------------------------------------------------------------
 
 export LANG="en_US.UTF-8"
@@ -48,7 +48,7 @@ logo[2]="
 　　　　┃ 　┃
 　　　　┃ 　┃ + + + +
 　　　　┃ 　┃
-　　　　┃ 　┃ + 　　神兽保佑,永不宕机！
+　　　　┃ 　┃ + 　　神兽保佑，永不宕机！
 　　　　┃ 　┃
 　　　　┃ 　┃　　+
 　　　　┃ 　┗━━━┓ + +
@@ -68,7 +68,7 @@ logo[3]="
  　　┃ 　┻　 ┃
  　　┃　　　 ┃
  　　┗━┓ 　┏━┛
- 　　　┃ 　┃    神兽保佑,永不宕机！
+ 　　　┃ 　┃    神兽护体，系统稳如泰山！
  　　　┃ 　┃
  　　　┃ 　┗━━━┓
  　　　┃　　　 ┣┓
@@ -84,7 +84,7 @@ logo=${logo[RANDOM % ${#logo[@]} + 1]}
 # System
 #
 
-system_os=$(grep -w PRETTY_NAME /etc/os-release|awk -F '"' '{printf $2}')
+os_info=$(grep -w PRETTY_NAME /etc/os-release|awk -F '"' '{printf $2}')
 
 #
 # Kernel
@@ -127,7 +127,7 @@ load_average=$(awk '{print $1" "$2" "$3}' /proc/loadavg)
 # Disk
 #
 
-disk_used=$(df -h / | awk 'NR==2{printf "%s / %s (%s)", $3, $2, $5}')
+disk_info=$(df -h / | awk 'NR==2{printf "%s / %s (%s)", $3, $2, $5}')
 
 #
 # Time
@@ -139,7 +139,7 @@ time_cur=$(date "+%F %T %Z %z")
 # Uptime
 #
 
-up_time=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"days,",h+0,"hours,",m+0,"minutes"}')
+uptime_info=$(uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0,"天,",h+0,"小时,",m+0,"分钟"}')
 
 #
 # Username
@@ -152,20 +152,20 @@ hostname=${HOSTNAME:-$(hostname)}
 # Users
 #
 
-user_num=$(who -q | awk '{print NF; exit}')
+active_users=$(who -q | awk '{print NF; exit}')
 
 #
 # Show Start
 #
 
 echo -e "\033[0;36m$logo\033[0m"
-echo -e "操作系统: \t$system_os"
+echo -e "操作系统: \t$os_info"
 echo -e "内核版本: \t$kernel_version"
-echo -e "拥塞算法: \t$tcpcc + $qdisc"
-echo -e "当前时间: \t$time_cur"
-echo -e "运行时长: \t$up_time"
+echo -e "拥塞控制: \t$tcpcc + $qdisc"
+echo -e "系统时间: \t$time_cur"
+echo -e "运行时长: \t$uptime_info"
 echo -e "系统负载: \t\033[0;33;40m$load_average\033[0m"
-echo -e "内存用量: \t\033[0;31;40m$mem_used\033[0m MiB / \033[0;32;40m$mem_total\033[0m MiB ($mem_usage%)"
-echo -e "磁盘用量: \t$disk_used"
-echo -e "登录身份: \t$user@$hostname"
-echo -e "在线人数: \t${user_num}\n"
+echo -e "内存使用: \t\033[0;31;40m$mem_used\033[0m MiB / \033[0;32;40m$mem_total\033[0m MiB ($mem_usage%)"
+echo -e "磁盘使用: \t$disk_info"
+echo -e "登录用户: \t$user@$hostname"
+echo -e "在线会话: \t${active_users}\n"
