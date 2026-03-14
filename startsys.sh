@@ -1,402 +1,651 @@
 #!/usr/bin/env bash
-###
- # @Description: 适用于 CentOS / Debian / Ubuntu 的系统初始化优化脚本
- # @From: https://github.com/myxuchangbin/shellscript 
- # @Warning: 脚本仅供内部测试，请谨慎用于生产环境
-###
+#
+# @Description: 适用于 CentOS / Debian / Ubuntu 的系统初始化优化脚本
+# @From: https://github.com/myxuchangbin/shellscript 
+# @Warning: 脚本仅供内部测试，请谨慎用于生产环境
+#
+
+# 启用严格模式
+set -euo pipefail
 
 # 颜色定义
-red='\033[0;31m'
-green='\033[0;32m'
-yellow='\033[0;33m'
-yellowflash='\033[0;33;5m'
-blackflash='\033[0;47;30;5m'
-plain='\033[0m'
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[0;33m'
+readonly YELLOWFLASH='\033[0;33;5m'
+readonly BLACKFLASH='\033[0;47;30;5m'
+readonly PLAIN='\033[0m'
 
 # 图标定义
-INFO="ℹ"
-OK="✓"
-WARN="⚠"
-ERROR="✗"
-ARROW="➜"
+readonly INFO="ℹ"
+readonly OK="✓"
+readonly WARN="⚠"
+readonly ERROR="✗"
+readonly ARROW="➜"
 
-# 打印带颜色的消息
-msg_info() {
-    echo -e "${yellow}${ARROW} $1${plain}"
-}
-
-msg_ok() {
-    echo -e "${green}${OK} $1${plain}"
-}
-
-msg_warn() {
-    echo -e "${yellow}${WARN} $1${plain}"
-}
-
-msg_error() {
-    echo -e "${red}${ERROR} $1${plain}"
-}
-
-# 检查 root 权限
-[[ $EUID -ne 0 ]] && msg_error "需要 root 权限运行此脚本！" && exit 1
-
-# 检测操作系统
-if [[ -f /etc/redhat-release ]]; then
-    release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
-    release="debian"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-elif cat /proc/version | grep -Eqi "debian"; then
-    release="debian"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
-    release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
-    release="centos"
-else
-    msg_error "无法识别系统版本，脚本中止" && exit 1
-fi
-
-os_version=""
-
-# 获取系统版本
-if [[ -f /etc/os-release ]]; then
-    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
-    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
-fi
-
-# 版本检查
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        msg_error "不支持 CentOS ${os_version}，需要 CentOS 7+" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        msg_error "不支持 Ubuntu ${os_version}，需要 Ubuntu 16+" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        msg_error "不支持 Debian ${os_version}，需要 Debian 9+" && exit 1
-    fi
-fi
-
-# 配置镜像源
-GITHUB_URL="github.com"
+# 全局变量
 GITHUB_RAW_URL="raw.githubusercontent.com"
 GITHUB_DOWNLOAD_URL="github.com"
 NTPSERVER="time.cloudflare.com"
 TIMEZONE="Asia/Hong_Kong"
-import_key=0
+DEPLOY_SSH_KEY=false
+release="unknown"
+os_version="unknown"
+bbr_run_status="unknown"
 
-if [ -n "$*" ]; then
-    if echo "$*" | grep -qwi "cn"; then
-        GITHUB_URL="gitclone.com"
-        GITHUB_RAW_URL="ghfast.top/https://raw.githubusercontent.com"
-        GITHUB_DOWNLOAD_URL="ghfast.top/https://github.com"
-        NTPSERVER="ntp1.aliyun.com"
-        TIMEZONE="Asia/Shanghai"
-        msg_info "已启用中国大陆镜像加速"
-    fi
-    if echo "$*" | grep -qwi "k"; then
-        import_key=1
-        msg_warn "将部署 SSH 公钥到服务器"
-    fi
-fi
+# 打印带颜色的消息
+msg_info() {
+    echo -e "${YELLOW}${ARROW} $1${PLAIN}"
+}
 
-# 安装基础工具包
-install(){
-    msg_info "安装基础工具包..."
-    if [[ x"${release}" == x"centos" ]]; then
-        if [ ${os_version} -eq 7 ]; then
-            yum clean all
-            yum makecache
-            yum -y install epel-release
-            yum -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python-devel python-pip python3-devel python3-pip socat nc mtr bind-utils yum-utils ntpdate gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo
-            update-ca-trust force-enable
-        else
-            # fix https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
-            if [ ${os_version} -eq 8 ]; then
-                (
-                   . "/etc/os-release"
-                   if [ "$ID" == "almalinux" ]; then
-                       if ! rpm -q "gpg-pubkey-ced7258b-6525146f" > /dev/null 2>&1; then
-                           rpm --import "https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux"
-                       fi
-                   fi
-                )
-            fi
-            dnf -y install epel-release
-            dnf -y install vim wget curl zip unzip bash-completion git tree mlocate lrzsz crontabs libsodium tar lsof nload screen nano python3-devel python3-pip socat nc mtr bind-utils yum-utils gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat bc cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
+msg_ok() {
+    echo -e "${GREEN}${OK} $1${PLAIN}"
+}
+
+msg_warn() {
+    echo -e "${YELLOW}${WARN} $1${PLAIN}"
+}
+
+msg_error() {
+    echo -e "${RED}${ERROR} $1${PLAIN}"
+}
+
+# 检查命令执行结果
+check_command() {
+    local exit_code=$?
+    local cmd_desc="$1"
+    if [[ ${exit_code} -ne 0 ]]; then
+        msg_error "${cmd_desc} 失败 (退出码: ${exit_code})"
+        return 1
+    fi
+    return 0
+}
+
+# 显示使用帮助
+show_usage() {
+    cat << EOF
+使用方法: bash $0 [选项]
+
+选项:
+    -c, --cdn     启用 CDN 镜像加速
+    -k, --key     部署 SSH 公钥到服务器
+    -h, --help    显示此帮助信息
+
+示例:
+    $0 -c -k      启用 CDN 并部署 SSH 密钥
+    $0 --cdn      仅启用 CDN 镜像
+EOF
+}
+
+# 检查 root 权限
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        msg_error "需要 root 权限运行此脚本！"
+        exit 1
+    fi
+}
+
+# 检测操作系统
+detect_os() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        case "$ID" in
+            centos|rhel|almalinux|rocky|ol|fedora|scientific|openeuler|anolis|opencloudos)
+                release="centos"
+                ;;
+            debian|raspbian|mx|uos|deepin)
+                release="debian"
+                ;;
+            ubuntu|linuxmint|kylin)
+                release="ubuntu"
+                ;;
+            *)
+                if [[ "$ID_LIKE" == *"rhel"* ]] || [[ "$ID_LIKE" == *"centos"* ]] || [[ "$ID_LIKE" == *"fedora"* ]]; then
+                    release="centos"
+                elif [[ "$ID_LIKE" == *"debian"* ]] || [[ "$ID_LIKE" == *"ubuntu"* ]]; then
+                    if [[ "$ID" == "ubuntu" ]] || [[ "$ID" == "linuxmint" ]] || [[ "$ID" == "kylin" ]]; then
+                        release="ubuntu"
+                    else
+                        release="debian"
+                    fi
+                else
+                    msg_error "不支持的系统: $ID"
+                    exit 1
+                fi
+                ;;
+        esac
+        os_version=${VERSION_ID%%.*}
+        if [[ -z "$os_version" ]]; then
+            os_version=$(echo "$VERSION_ID" | grep -oE '^[0-9]+' | head -1)
         fi
-    elif [[ x"${release}" == x"ubuntu" ]]; then
-        apt update -y
-        echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
-        echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
-        echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
-        apt install -y vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales-all
-        update-ca-certificates
-    elif [[ x"${release}" == x"debian" ]]; then
-        apt update -y
-        echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
-        echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
-        echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
-        apt install -y vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales-all
-        update-ca-certificates
+    elif command -v lsb_release >/dev/null 2>&1; then
+        local distro_id=$(lsb_release -is 2>/dev/null | tr '[:upper:]' '[:lower:]')
+        case "$distro_id" in
+            centos|rhel|almalinux|rocky|ol|fedora|scientific|openeuler|anolis|opencloudos)
+                release="centos"
+                ;;
+            debian|raspbian|mx|uos|deepin)
+                release="debian"
+                ;;
+            ubuntu|linuxmint|kylin)
+                release="ubuntu"
+                ;;
+            *)
+                msg_error "不支持的系统: $distro_id"
+                exit 1
+                ;;
+        esac
+        os_version=$(lsb_release -rs 2>/dev/null | grep -oE '^[0-9]+' | head -1)
+    elif [[ -f /etc/lsb-release ]]; then
+        . /etc/lsb-release
+        case "$DISTRIB_ID" in
+            CentOS|RedHatEnterpriseLinux|AlmaLinux|Rocky|Fedora|Scientific|openEuler|Anolis|OpenCloudOS)
+                release="centos"
+                ;;
+            Debian|Raspbian|MX|UOS|Deepin)
+                release="debian"
+                ;;
+            Ubuntu|LinuxMint|Kylin)
+                release="ubuntu"
+                ;;
+            *)
+                msg_error "不支持的系统: $DISTRIB_ID"
+                exit 1
+                ;;
+        esac
+        os_version=$(echo "$DISTRIB_RELEASE" | grep -oE '^[0-9]+' | head -1)
+    elif [[ -f /etc/redhat-release ]]; then
+        release="centos"
+        os_version=$(grep -oE '[0-9]+' /etc/redhat-release | head -1)
+    elif [[ -f /etc/issue ]]; then
+        local issue_content=$(cat /etc/issue 2>/dev/null)
+        if echo "$issue_content" | grep -Eqi "debian"; then
+            release="debian"
+        elif echo "$issue_content" | grep -Eqi "ubuntu"; then
+            release="ubuntu"
+        elif echo "$issue_content" | grep -Eqi "centos|red hat|redhat|fedora"; then
+            release="centos"
+        fi
+        if [[ "$release" != "unknown" ]]; then
+            os_version=$(echo "$issue_content" | grep -oE '[0-9]+' | head -1)
+        fi
+    elif [[ -f /proc/version ]]; then
+        if grep -Eqi "debian|raspbian|deepin|uos" /proc/version 2>/dev/null; then
+            release="debian"
+        elif grep -Eqi "ubuntu|linux mint|kylin" /proc/version 2>/dev/null; then
+            release="ubuntu"
+        elif grep -Eqi "centos|red hat|redhat|rocky|alma|oracle|anolis|opencloudos|openeuler" /proc/version 2>/dev/null; then
+            release="centos"
+        fi
+    fi
+
+    if [[ "$release" == "unknown" ]]; then
+        msg_error "无法识别系统类型"
+        exit 1
     fi
     
-    if [ ! -e /usr/local/bin/tcping ]; then
-        wget --timeout=30 --tries=3 -O /tmp/tcping-linux-amd64-static.tar.gz https://${GITHUB_DOWNLOAD_URL}/pouriyajamshidi/tcping/releases/latest/download/tcping-linux-amd64-static.tar.gz
-        tar xf /tmp/tcping-linux-amd64-static.tar.gz -C /usr/local/bin/
-        chmod +x /usr/local/bin/tcping
-        rm -f /tmp/tcping-linux-amd64-static.tar.gz
+    if [[ -z "$os_version" ]] || [[ "$os_version" == "unknown" ]]; then
+        msg_error "无法识别系统版本"
+        exit 1
+    fi
+}
+
+# 检查系统版本兼容性
+check_version() {
+    if [[ -z "${os_version}" ]] || [[ "${os_version}" == "unknown" ]]; then
+        msg_error "系统版本未知，无法检查兼容性"
+        exit 1
+    fi
+
+    case "${release}" in
+        centos)
+            if [[ "${os_version}" -lt 7 ]]; then
+                msg_error "不支持 ${ID:-CentOS/RHEL} ${os_version}，需要 7+"
+                exit 1
+            fi
+            ;;
+        ubuntu)
+            if [[ "${os_version}" -lt 16 ]]; then
+                msg_error "不支持 ${ID:-Ubuntu} ${os_version}，需要 16+"
+                exit 1
+            fi
+            ;;
+        debian)
+            if [[ "${os_version}" -lt 9 ]]; then
+                msg_error "不支持 ${ID:-Debian} ${os_version}，需要 9+"
+                exit 1
+            fi
+            ;;
+        *)
+            msg_error "未知系统类型: ${release}"
+            exit 1
+            ;;
+    esac
+}
+
+# 解析命令行参数
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -c|--cdn)
+                GITHUB_RAW_URL="ghfast.top/https://raw.githubusercontent.com"
+                GITHUB_DOWNLOAD_URL="ghfast.top/https://github.com"
+                NTPSERVER="ntp1.aliyun.com"
+                TIMEZONE="Asia/Shanghai"
+                msg_info "已启用 CDN 镜像加速"
+                shift
+                ;;
+            -k|--key)
+                DEPLOY_SSH_KEY=true
+                msg_warn "将部署 SSH 公钥到服务器"
+                shift
+                ;;
+            -h|--help)
+                show_usage
+                exit 0
+                ;;
+            *)
+                msg_error "未知参数: $1"
+                show_usage
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# 安装基础工具包
+install_pkg() {
+    msg_info "安装基础工具包..."
+    if [[ "${release}" == "centos" ]]; then
+        if [ ${os_version} -eq 7 ]; then
+            yum clean all; check_command "yum clean"
+            yum makecache -y; check_command "yum makecache"
+            yum -y install epel-release; check_command "安装 epel-release"
+            yum -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python-devel python-pip python3-devel python3-pip socat nc mtr bind-utils yum-utils ntpdate chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo
+            check_command "安装基础工具包"
+            update-ca-trust force-enable; check_command "更新 CA 证书"
+        else
+            # fix https://almalinux.org/blog/2023-12-20-almalinux-8-key-update/
+            if [[ "${os_version}" -eq 8 && "${ID}" == "almalinux" ]]; then
+                if ! rpm -q "gpg-pubkey-ced7258b-6525146f" > /dev/null 2>&1; then
+                   rpm --import "https://repo.almalinux.org/almalinux/RPM-GPG-KEY-AlmaLinux"
+                   check_command "导入 AlmaLinux GPG 密钥"
+                fi
+            fi
+            dnf makecache -y
+            dnf -y install epel-release; check_command "安装 epel-release"
+            dnf -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python3-devel python3-pip socat nc mtr bind-utils yum-utils chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
+            check_command "安装基础工具包"
+        fi
+    elif [[ "${release}" == "ubuntu" ]]; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y; check_command "apt-get update"
+        echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
+        echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
+        echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
+        apt-get install -y --no-install-recommends vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales
+        check_command "安装基础工具包"
+        update-ca-certificates; check_command "更新 CA 证书"
+    elif [[ "${release}" == "debian" ]]; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y; check_command "apt-get update"
+        echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
+        echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
+        echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
+        apt-get install -y --no-install-recommends vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales
+        check_command "安装基础工具包"
+        update-ca-certificates; check_command "更新 CA 证书"
+    fi
+    if [[ ! -e /usr/local/bin/tcping ]]; then
+        local tcping_tmpdir=$(mktemp -d)
+        if wget --timeout=30 --tries=3 -O "${tcping_tmpdir}/tcping-linux-amd64-static.tar.gz" "https://${GITHUB_DOWNLOAD_URL}/pouriyajamshidi/tcping/releases/latest/download/tcping-linux-amd64-static.tar.gz"; then
+            tar xf "${tcping_tmpdir}/tcping-linux-amd64-static.tar.gz" -C /usr/local/bin/; check_command "解压 tcping"
+            chmod +x /usr/local/bin/tcping
+        else
+            msg_warn "tcping 下载失败，跳过安装"
+        fi
+        rm -rf "${tcping_tmpdir}"
     fi
     msg_ok "基础工具包安装完成"
 }
 
 #配置 SSH 安全策略
-set_security(){
+set_ssh() {
     msg_info "配置 SSH 安全策略..."
-    if grep -q "^UseDNS" /etc/ssh/sshd_config; then
-        sed -i '/^UseDNS/s/yes/no/' /etc/ssh/sshd_config
-    else
-       sed -i '$a UseDNS no' /etc/ssh/sshd_config
+    local sshd_config="/etc/ssh/sshd_config"
+    if [[ ! -f "${sshd_config}" ]]; then
+        msg_error "SSH 配置文件不存在: ${sshd_config}"
+        return 1
     fi
-    if grep -q "^GSSAPIAuthentication" /etc/ssh/sshd_config; then
-        sed -i '/^GSSAPIAuthentication/s/yes/no/' /etc/ssh/sshd_config
+    if grep -q "^UseDNS" "${sshd_config}"; then
+        sed -i '/^UseDNS/s/yes/no/' "${sshd_config}"
     else
-       sed -i '$a GSSAPIAuthentication no' /etc/ssh/sshd_config
+       sed -i '$a UseDNS no' "${sshd_config}"
     fi
-    if grep -q "^PermitEmptyPasswords" /etc/ssh/sshd_config; then
-        sed -i '/^PermitEmptyPasswords/s/yes/no/' /etc/ssh/sshd_config
+    if grep -q "^GSSAPIAuthentication" "${sshd_config}"; then
+        sed -i '/^GSSAPIAuthentication/s/yes/no/' "${sshd_config}"
     else
-       sed -i '$a PermitEmptyPasswords no' /etc/ssh/sshd_config
+       sed -i '$a GSSAPIAuthentication no' "${sshd_config}"
     fi
-    if grep -q "^IgnoreRhosts" /etc/ssh/sshd_config; then
-        sed -i 's/^IgnoreRhosts.*/IgnoreRhosts yes/' /etc/ssh/sshd_config
+    if grep -q "^PermitEmptyPasswords" "${sshd_config}"; then
+        sed -i '/^PermitEmptyPasswords/s/yes/no/' "${sshd_config}"
     else
-       sed -i '$a IgnoreRhosts yes' /etc/ssh/sshd_config
+       sed -i '$a PermitEmptyPasswords no' "${sshd_config}"
     fi
-    if grep -q "^HostbasedAuthentication" /etc/ssh/sshd_config; then
-        sed -i '/^HostbasedAuthentication/s/yes/no/' /etc/ssh/sshd_config
+    if grep -q "^IgnoreRhosts" "${sshd_config}"; then
+        sed -i 's/^IgnoreRhosts.*/IgnoreRhosts yes/' "${sshd_config}"
     else
-       sed -i '$a HostbasedAuthentication no' /etc/ssh/sshd_config
+       sed -i '$a IgnoreRhosts yes' "${sshd_config}"
     fi
-    if grep -q "^UsePAM" /etc/ssh/sshd_config; then
-        sed -i '/^UsePAM/s/no/yes/' /etc/ssh/sshd_config
+    if grep -q "^HostbasedAuthentication" "${sshd_config}"; then
+        sed -i '/^HostbasedAuthentication/s/yes/no/' "${sshd_config}"
     else
-       sed -i '$a UsePAM yes' /etc/ssh/sshd_config
+       sed -i '$a HostbasedAuthentication no' "${sshd_config}"
     fi
-    if grep -qiP '^Protocol' /etc/ssh/sshd_config; then
-        sed -i "/^Protocol/cProtocol 2" /etc/ssh/sshd_config
+    if grep -q "^UsePAM" "${sshd_config}"; then
+        sed -i '/^UsePAM/s/no/yes/' "${sshd_config}"
     else
-       sed -i '$a Protocol 2' /etc/ssh/sshd_config
+       sed -i '$a UsePAM yes' "${sshd_config}"
     fi
-    if grep -qiP '^MaxAuthTries' /etc/ssh/sshd_config; then
-        sed -i '/^MaxAuthTries[[:space:]]/cMaxAuthTries 3' /etc/ssh/sshd_config
+    if grep -q '^MaxAuthTries' "${sshd_config}"; then
+        sed -i '/^MaxAuthTries[[:space:]]/cMaxAuthTries 3' "${sshd_config}"
     else
-        sed -i '$a MaxAuthTries 3' /etc/ssh/sshd_config
+        sed -i '$a MaxAuthTries 3' "${sshd_config}"
     fi
-    if grep -qiP '^ClientAliveInterval' /etc/ssh/sshd_config; then
-        sed -i '/^ClientAliveInterval[[:space:]]/cClientAliveInterval 300' /etc/ssh/sshd_config
+    if grep -q '^ClientAliveInterval' "${sshd_config}"; then
+        sed -i '/^ClientAliveInterval[[:space:]]/cClientAliveInterval 300' "${sshd_config}"
     else
-        sed -i '$a ClientAliveInterval 300' /etc/ssh/sshd_config
+        sed -i '$a ClientAliveInterval 300' "${sshd_config}"
     fi
-    if grep -qiP '^LoginGraceTime' /etc/ssh/sshd_config; then
-        sed -i '/^LoginGraceTime[[:space:]]/cLoginGraceTime 30' /etc/ssh/sshd_config
+    if grep -q '^LoginGraceTime' "${sshd_config}"; then
+        sed -i '/^LoginGraceTime[[:space:]]/cLoginGraceTime 30' "${sshd_config}"
     else
-        sed -i '$a LoginGraceTime 30' /etc/ssh/sshd_config
+        sed -i '$a LoginGraceTime 30' "${sshd_config}"
     fi
-    if grep -qiP '^MaxStartups' /etc/ssh/sshd_config; then
-        sed -i '/^MaxStartups[[:space:]]/cMaxStartups 10:30:60' /etc/ssh/sshd_config
+    if grep -q '^MaxStartups' "${sshd_config}"; then
+        sed -i '/^MaxStartups[[:space:]]/cMaxStartups 10:30:60' "${sshd_config}"
     else
-        sed -i '$a MaxStartups 10:30:60' /etc/ssh/sshd_config
+        sed -i '$a MaxStartups 10:30:60' "${sshd_config}"
     fi
-    if [ -f /etc/selinux/config ]; then
-        sed -i '/^SELINUX/s/enforcing/disabled/' /etc/selinux/config
-        sed -i '/^SELINUX/s/permissive/disabled/' /etc/selinux/config
-        setenforce 0
+    if sshd -t -f "${sshd_config}" 2>/dev/null; then
+        msg_ok "SSH 配置语法检查通过"
+        if command -v systemctl &>/dev/null; then
+            if systemctl is-enabled sshd >/dev/null 2>&1 || systemctl status sshd >/dev/null 2>&1; then
+                systemctl reload sshd 2>/dev/null || systemctl restart sshd
+                check_command "重载 SSH 服务"
+            elif systemctl is-enabled ssh >/dev/null 2>&1 || systemctl status ssh >/dev/null 2>&1; then
+                systemctl reload ssh 2>/dev/null || systemctl restart ssh
+                check_command "重载 SSH 服务"
+            else
+                msg_warn "请手动重启 SSH 服务以加载配置"
+            fi
+        elif service ssh status &>/dev/null; then
+            service ssh reload 2>/dev/null || service ssh restart
+            check_command "重载 SSH 服务"
+        elif service sshd status &>/dev/null; then
+            service sshd reload 2>/dev/null || service sshd restart
+            check_command "重载 SSH 服务"
+        else
+            msg_warn "请手动重启 SSH 服务以加载配置"
+        fi
+    else
+        msg_error "SSH 配置语法错误，请手动检查"
+        return 1
     fi
     msg_ok "SSH 安全策略配置完成"
+}
 
-    #安全警告：脚本输入k参数时，将部署ssh公钥到服务器
-    #部署 SSH 公钥
-    if [[ "${import_key}" == "1" ]]; then
-        msg_info "部署 SSH 公钥..."
-        [ -e /root/.ssh ] || mkdir -m 700 /root/.ssh
-        [ -e /root/.ssh/authorized_keys ] || touch /root/.ssh/authorized_keys
-        
-        #新服务器操作系统中ssh-rsa（rsa/SHA1）签名算法默认被禁用，旧ssh客户端需使用ED25519密钥登录（推荐优先ED25519其次4096位RSA）
-        #https://help.aliyun.com/zh/ecs/user-guide/resolve-an-rsa-key-based-connection-failure-to-an-instance
-        # ED25519 密钥
-        if [ "$(grep -c "ed25519 256-250324" /root/.ssh/authorized_keys)" -eq 0 ]; then
-            echo -e "\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQGxmeW+E1nNIzRZZrwMwbmrsGKZy9Gnu1NSt84mXT1 ed25519 256-250324" >> /root/.ssh/authorized_keys
-            if [ $? -eq 0 ]; then
-                msg_ok "ED25519 公钥部署成功"
-            else
-                msg_warn "ED25519 公钥部署失败，请检查"
-            fi
+#部署 SSH 公钥
+deploy_sshkey() {
+    # 安全警告：脚本输入 -k 参数时，将部署 ssh 公钥到服务器
+    msg_info "部署 SSH 公钥..."
+    if [[ ! -d /root/.ssh ]]; then
+        mkdir -m 700 /root/.ssh || {
+            msg_error "创建 /root/.ssh 目录失败"
+            return 1
+        }
+    fi
+    if [[ ! -f /root/.ssh/authorized_keys ]]; then
+        touch /root/.ssh/authorized_keys || {
+            msg_error "创建 authorized_keys 文件失败"
+            return 1
+        }
+    fi
+    chmod 600 /root/.ssh/authorized_keys 2>/dev/null || true
+    chmod 700 /root/.ssh 2>/dev/null || true
+    # 新服务器操作系统中 ssh-rsa（rsa/SHA1）签名算法默认被禁用，旧 ssh 客户端需使用 ED25519 密钥登录（推荐优先 ED25519 其次 4096 位 RSA）
+    # https://help.aliyun.com/zh/ecs/user-guide/resolve-an-rsa-key-based-connection-failure-to-an-instance
+    # ED25519 密钥
+    if [ "$(grep -c "ed25519 256-250324" /root/.ssh/authorized_keys)" -eq 0 ]; then
+        echo -e "\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGQGxmeW+E1nNIzRZZrwMwbmrsGKZy9Gnu1NSt84mXT1 ed25519 256-250324" >> /root/.ssh/authorized_keys
+        if [ $? -eq 0 ]; then
+            msg_ok "ED25519 公钥部署成功"
         else
-            msg_info "ED25519 公钥已存在，跳过"
+            msg_warn "ED25519 公钥部署失败，请检查"
         fi
-        
-        # RSA 密钥
-        if [ "$(grep -c "rsa 4096-250324" /root/.ssh/authorized_keys)" -eq 0 ]; then
-            KEY_CHECKSUM="ef7d690265ea090c77025d133198e21f"
-            wget --timeout=30 --tries=3 -O /tmp/id_rsa_4096.pub https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/id_rsa_4096.pub
-            if echo "$KEY_CHECKSUM  /tmp/id_rsa_4096.pub" | md5sum -c; then
-                cat /tmp/id_rsa_4096.pub >> /root/.ssh/authorized_keys
-                if [ $? -eq 0 ]; then
-                    msg_ok "RSA 公钥部署成功"
-                else
-                    msg_warn "RSA 公钥部署失败，请检查"
-                fi
-            else
-                msg_error "RSA 公钥校验失败，终止部署"
-            fi
-            rm -f /tmp/id_rsa_4096.pub
-        else
-            msg_info "RSA 公钥已存在，跳过"
-        fi
+    else
+        msg_info "ED25519 公钥已存在，跳过"
     fi
 
-    # 配置系统时区
-    msg_info "配置系统时区..."
-    if [[ x"${release}" == x"centos" ]]; then
-        if [ ${os_version} -eq 7 ]; then
-            if [ "$(timedatectl | grep "Time zone" | grep -c "${TIMEZONE}")" -eq 0 ]; then
-                timedatectl set-timezone ${TIMEZONE}
-                sed -i 's%SYNC_HWCLOCK=no%SYNC_HWCLOCK=yes%' /etc/sysconfig/ntpdate
+    # RSA 密钥
+    if [ "$(grep -c "rsa 4096-250324" /root/.ssh/authorized_keys)" -eq 0 ]; then
+        local key_checksum="ef7d690265ea090c77025d133198e21f"
+        local rsa_key_tmp="$(mktemp)"
+        wget --timeout=30 --tries=3 -O "${rsa_key_tmp}" https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/id_rsa_4096.pub
+        if echo "${key_checksum} ${rsa_key_tmp}" | md5sum -c; then
+            cat "${rsa_key_tmp}" >> /root/.ssh/authorized_keys
+            if [ $? -eq 0 ]; then
+                msg_ok "RSA 公钥部署成功"
+            else
+                msg_warn "RSA 公钥部署失败，请检查"
             fi
-            ntpdate ${NTPSERVER}
-            hwclock -w
         else
-            if [ "$(timedatectl | grep "Time zone" | grep -c "${TIMEZONE}")" -eq 0 ]; then
-                timedatectl set-timezone ${TIMEZONE}
-                echo "server ${NTPSERVER} iburst" >>/etc/chrony.conf
-                systemctl restart chronyd.service
-                chronyc -a makestep
+            msg_error "RSA 公钥校验失败，终止部署"
+        fi
+        rm -f "${rsa_key_tmp}"
+    else
+        msg_info "RSA 公钥已存在，跳过"
+    fi
+}
+
+# 禁用 SELinux
+set_selinux() {
+    if [ -f /etc/selinux/config ] || command -v getenforce &>/dev/null; then
+        msg_info "禁用 SELinux..."
+        if [ -f /etc/selinux/config ]; then
+            if grep -q "^SELINUX=" /etc/selinux/config 2>/dev/null; then
+                sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+            else
+                echo "SELINUX=disabled" >> /etc/selinux/config
             fi
         fi
-    elif [[ x"${release}" == x"ubuntu" ]] || [[ x"${release}" == x"debian" ]]; then
-        if [ "$(timedatectl | grep "Time zone" | grep -c "${TIMEZONE}")" -eq 0 ]; then
-            timedatectl set-timezone ${TIMEZONE}
-        fi 
+        if command -v getenforce &>/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" ]]; then
+            setenforce 0 2>/dev/null
+            check_command "临时禁用 SELinux"
+        fi
+        msg_ok "SELinux 已禁用"
+    fi
+
+}
+
+# 配置系统时区
+set_timezone() {
+    msg_info "配置系统时区..."
+
+    if command -v timedatectl &>/dev/null; then
+        if ! timedatectl | grep -q "Time zone.*${TIMEZONE}"; then
+            timedatectl set-timezone "${TIMEZONE}"
+            check_command "设置时区"
+        fi
+    else
+        ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+        check_command "设置时区"
+    fi
+    if [[ "${release}" == "centos" ]]; then
+        if command -v chronyd &>/dev/null; then
+            if ! grep -Eq "^[#[:space:]]*(server|pool)[[:space:]]+${NTPSERVER}([[:space:]]|$)" /etc/chrony.conf 2>/dev/null; then
+                sed -i 's/^\s*\(server\|pool\)\s\+/#&/g' /etc/chrony.conf 2>/dev/null || true
+                echo "server ${NTPSERVER} iburst" >> /etc/chrony.conf
+            fi
+            systemctl enable chronyd.service >/dev/null 2>&1 || true
+            systemctl restart chronyd.service
+            check_command "配置 chronyd"
+            chronyc -a makestep 2>/dev/null || chronyd -q "server ${NTPSERVER} iburst" 2>/dev/null || true
+        else
+            sed -i 's/SYNC_HWCLOCK=no/SYNC_HWCLOCK=yes/' /etc/sysconfig/ntpdate 2>/dev/null || true
+            ntpdate "${NTPSERVER}" && hwclock -w
+            check_command "NTP 时间同步"
+        fi
+    elif [[ "${release}" == "ubuntu" ]] || [[ "${release}" == "debian" ]]; then
+        if command -v chronyd &>/dev/null; then
+            if ! grep -Eq "^[#[:space:]]*(server|pool)[[:space:]]+${NTPSERVER}([[:space:]]|$)" /etc/chrony/chrony.conf 2>/dev/null; then
+                sed -i 's/^\s*\(server\|pool\)\s\+/#&/g' /etc/chrony/chrony.conf 2>/dev/null || true
+                echo "server ${NTPSERVER} iburst" >> /etc/chrony/chrony.conf
+            fi
+            systemctl enable chrony >/dev/null 2>&1 || systemctl enable chronyd >/dev/null 2>&1 || true
+            systemctl restart chrony >/dev/null 2>&1 || systemctl restart chronyd
+            check_command "配置 chrony"
+            chronyc -a makestep 2>/dev/null || chronyd -q "server ${NTPSERVER} iburst" 2>/dev/null || true
+        else
+            if [ -f /etc/systemd/timesyncd.conf ]; then
+                if grep -q "^#*NTP=" /etc/systemd/timesyncd.conf 2>/dev/null; then
+                    sed -i "s/^#*NTP=.*/NTP=${NTPSERVER}/" /etc/systemd/timesyncd.conf
+                else
+                    echo "NTP=${NTPSERVER}" >> /etc/systemd/timesyncd.conf
+                fi
+                systemctl enable systemd-timesyncd >/dev/null 2>&1 || true
+                systemctl restart systemd-timesyncd
+                check_command "配置 systemd-timesyncd"
+            fi
+            timedatectl set-ntp true 2>/dev/null || true
+        fi
     fi
     msg_ok "系统时区配置完成"
+}
 
-    # 启用历史命令时间戳
+# 启用历史命令时间戳
+set_history() {
     msg_info "启用历史命令时间戳..."
-    if ! grep -q 'HISTTIMEFORMAT=' /etc/profile; then
-        echo "export HISTTIMEFORMAT=\"%F %T \`whoami\` \"" >> /etc/profile
+    if [[ ! -f /etc/profile ]]; then
+        msg_error "/etc/profile 不存在"
+        return 1
+    fi
+    if [[ ! -w /etc/profile ]]; then
+        msg_error "/etc/profile 无写入权限"
+        return 1
+    fi
+    if ! grep -qE '^[[:space:]]*export[[:space:]]+HISTTIMEFORMAT=' /etc/profile; then
+        echo 'export HISTTIMEFORMAT="%F %T $USER "' >> /etc/profile
+        check_command "写入 HISTTIMEFORMAT 配置"
     fi
     msg_ok "历史命令时间戳已启用"
+}
 
-    # 禁用 Ctrl+Alt+Del 重启
+# 禁用 Ctrl+Alt+Del 重启
+set_ctrlaltdel() {
     msg_info "禁用 Ctrl+Alt+Del 重启..."
-    rm -rf /usr/lib/systemd/system/ctrl-alt-del.target
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl mask ctrl-alt-del.target >/dev/null 2>&1
+        check_command "禁用 ctrl-alt-del.target 服务"
+    else
+        msg_error "systemctl 不存在，无法禁用 Ctrl+Alt+Del 重启"
+        return 1
+    fi
     msg_ok "Ctrl+Alt+Del 重启已禁用"
+}
 
-    # 配置系统字符集
+# 配置系统字符集
+set_locale() {
     msg_info "配置系统字符集..."
-    if [[ x"${release}" == x"centos" ]]; then
-        localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
-        export LC_ALL=zh_CN.UTF-8
-        if grep -q "^LANG" /etc/locale.conf; then
-            sed -i '/^LANG=/s/.*/LANG=zh_CN.UTF-8/' /etc/locale.conf
-        else
-           sed -i '$a LANG=zh_CN.UTF-8' /etc/locale.conf
+    if [[ "${release}" == "centos" ]]; then
+        localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8 >/dev/null 2>&1 || true
+        if command -v localectl >/dev/null 2>&1; then
+            localectl set-locale LANG=zh_CN.UTF-8 >/dev/null 2>&1 || true
         fi
-        msg_ok "系统字符集配置完成"
-    elif [[ x"${release}" == x"ubuntu" ]] || [[ x"${release}" == x"debian" ]]; then
-        locale-gen zh_CN.UTF-8 2>/dev/null || true
-        update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 2>/dev/null || true
-        msg_info "已生成 zh_CN.UTF-8 字符集"
+        if grep -q "^LANG=" /etc/locale.conf 2>/dev/null; then
+            sed -i 's/^LANG=.*/LANG=zh_CN.UTF-8/' /etc/locale.conf
+        else
+            echo "LANG=zh_CN.UTF-8" > /etc/locale.conf
+        fi
+    else
+        if [[ -f /etc/locale.gen ]]; then
+            sed -i 's/^[#[:space:]]*zh_CN\.UTF-8[[:space:]]\+UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
+            grep -q '^zh_CN.UTF-8[[:space:]]\+UTF-8' /etc/locale.gen || echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen
+        fi
+        command -v locale-gen >/dev/null 2>&1 && locale-gen zh_CN.UTF-8 >/dev/null 2>&1 || true
+        command -v update-locale >/dev/null 2>&1 && update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 >/dev/null 2>&1 || true
+        if [[ -f /etc/default/locale ]]; then
+            grep -q '^LANG=' /etc/default/locale 2>/dev/null && \
+                sed -i 's/^LANG=.*/LANG=zh_CN.UTF-8/' /etc/default/locale || \
+                echo 'LANG=zh_CN.UTF-8' >> /etc/default/locale
+            grep -q '^LC_ALL=' /etc/default/locale 2>/dev/null && \
+                sed -i 's/^LC_ALL=.*/LC_ALL=zh_CN.UTF-8/' /etc/default/locale || \
+                echo 'LC_ALL=zh_CN.UTF-8' >> /etc/default/locale
+        fi
     fi
+    export LANG=zh_CN.UTF-8
+    export LC_ALL=zh_CN.UTF-8
+    msg_ok "系统字符集配置完成"
+}
 
-    # 配置定时内存回收
+# 配置定时内存回收
+set_drop_cache() {
     msg_info "配置定时内存回收..."
-    crontab -l > /tmp/drop_cachescronconf
-    if grep -wq "drop_caches" /tmp/drop_cachescronconf; then
-        sed -i "/drop_caches/d" /tmp/drop_cachescronconf
-    fi
-    echo "0 6 * * * sync; echo 3 > /proc/sys/vm/drop_caches" >> /tmp/drop_cachescronconf
-    crontab /tmp/drop_cachescronconf
-    rm -f /tmp/drop_cachescronconf
+    local cron_tmp=$(mktemp)
+    crontab -l 2>/dev/null | grep -v "/proc/sys/vm/drop_caches" > "$cron_tmp" || true
+    echo '0 6 * * * sync && echo 3 > /proc/sys/vm/drop_caches' >> "$cron_tmp"
+    crontab "$cron_tmp"
+    check_command "配置 crontab"
+    rm -f "$cron_tmp"
     msg_ok "定时内存回收已配置"
 }
 
 # 配置系统资源限制
-set_file(){
+set_limit() {
     msg_info "配置系统资源限制..."
-    limits=/etc/security/limits.conf
-    grep -Fxq "root soft nofile 512000"  $limits || echo "root soft nofile 512000"  >> $limits
-    grep -Fxq "root hard nofile 512000"  $limits || echo "root hard nofile 512000"  >> $limits
-    grep -Fxq "* soft nofile 512000"     $limits || echo "* soft nofile 512000"     >> $limits
-    grep -Fxq "* hard nofile 512000"     $limits || echo "* hard nofile 512000"     >> $limits
-    grep -Fxq "* soft nproc 512000"      $limits || echo "* soft nproc 512000"      >> $limits
-    grep -Fxq "* hard nproc 512000"      $limits || echo "* hard nproc 512000"      >> $limits
+    local limits=/etc/security/limits.conf
+    grep -Fxq "root soft nofile 512000"  "$limits" || echo "root soft nofile 512000"  >> "$limits"
+    grep -Fxq "root hard nofile 512000"  "$limits" || echo "root hard nofile 512000"  >> "$limits"
+    grep -Fxq "* soft nofile 512000"     "$limits" || echo "* soft nofile 512000"     >> "$limits"
+    grep -Fxq "* hard nofile 512000"     "$limits" || echo "* hard nofile 512000"     >> "$limits"
+    grep -Fxq "* soft nproc 512000"      "$limits" || echo "* soft nproc 512000"      >> "$limits"
+    grep -Fxq "* hard nproc 512000"      "$limits" || echo "* hard nproc 512000"      >> "$limits"
 
-    if [[ x"${release}" == x"centos" ]]; then
-        if [ ${os_version} -eq 7 ]; then
-            [[ -f /etc/security/limits.d/20-nproc.conf ]] && sed -i 's/4096/65535/' /etc/security/limits.d/20-nproc.conf
+    if [[ "${release}" == "centos" && "${os_version}" -eq 7 ]]; then
+        if [[ -f /etc/security/limits.d/20-nproc.conf ]]; then
+            sed -i 's/^[[:space:]]*\*.*soft.*nproc.*$/\* soft nproc 65535/' /etc/security/limits.d/20-nproc.conf
+            check_command "修改 20-nproc.conf"
         fi
     fi
 
     ulimit -SHn 512000
-    if grep -q "^ulimit" /etc/profile; then
-        sed -i '/ulimit -SHn/d' /etc/profile
-        echo -e "\nulimit -SHn 512000" >> /etc/profile
-    else
-        echo -e "\nulimit -SHn 512000" >> /etc/profile
-    fi
+    check_command "应用 ulimit 限制"
+    sed -i '/^[[:space:]]*ulimit -SHn[[:space:]]\+/d' /etc/profile 2>/dev/null || true
+    echo -e "\nulimit -SHn 512000" >> /etc/profile
+    check_command "配置 /etc/profile"
 
-    if [ -e /etc/pam.d/common-session ]; then
+    if [[ -e /etc/pam.d/common-session ]]; then
         if ! grep -q "pam_limits.so" /etc/pam.d/common-session; then
             echo "session required pam_limits.so" >> /etc/pam.d/common-session
         fi
-    else
-        echo "session required pam_limits.so" >> /etc/pam.d/common-session
     fi
-
-    if [ -e /etc/pam.d/common-session-noninteractive ]; then
+    if [[ -e /etc/pam.d/common-session-noninteractive ]]; then
         if ! grep -q "pam_limits.so" /etc/pam.d/common-session-noninteractive; then
             echo "session required pam_limits.so" >> /etc/pam.d/common-session-noninteractive
         fi
-    else
-        echo "session required pam_limits.so" >> /etc/pam.d/common-session-noninteractive
     fi
-
-    if grep -q "^DefaultLimitCORE" /etc/systemd/system.conf; then
-        sed -i '/DefaultLimitCORE/d' /etc/systemd/system.conf
-        echo "DefaultLimitCORE=infinity" >> /etc/systemd/system.conf
-    else
-        echo "DefaultLimitCORE=infinity" >> /etc/systemd/system.conf
-    fi
-
-    if grep -q "^DefaultLimitNOFILE" /etc/systemd/system.conf; then
-        sed -i '/DefaultLimitNOFILE/d' /etc/systemd/system.conf
-        echo "DefaultLimitNOFILE=512000" >> /etc/systemd/system.conf
-    else
-        echo "DefaultLimitNOFILE=512000" >> /etc/systemd/system.conf
-    fi
-
-    if grep -q "^DefaultLimitNPROC" /etc/systemd/system.conf; then
-        sed -i '/DefaultLimitNPROC/d' /etc/systemd/system.conf
-        echo "DefaultLimitNPROC=512000" >> /etc/systemd/system.conf
-    else
-        echo "DefaultLimitNPROC=512000" >> /etc/systemd/system.conf
-    fi
-
-    systemctl daemon-reload
+    sed -i '/^DefaultLimitCORE=/d' /etc/systemd/system.conf 2>/dev/null || true
+    echo "DefaultLimitCORE=infinity" >> /etc/systemd/system.conf
+    sed -i '/^DefaultLimitNOFILE=/d' /etc/systemd/system.conf 2>/dev/null || true
+    echo "DefaultLimitNOFILE=512000" >> /etc/systemd/system.conf
+    sed -i '/^DefaultLimitNPROC=/d' /etc/systemd/system.conf 2>/dev/null || true
+    echo "DefaultLimitNPROC=65535" >> /etc/systemd/system.conf
+    systemctl daemon-reload 2>/dev/null || true
     msg_ok "系统资源限制配置完成"
 }
 
 # 配置网络与内核参数
-set_sysctl(){
+set_sysctl() {
     msg_info "配置网络与内核参数..."
     sed -i '/net.ipv4.icmp_echo_ignore_broadcasts/d' /etc/sysctl.conf
     sed -i '/net.ipv4.icmp_ignore_bogus_error_responses/d' /etc/sysctl.conf
@@ -413,7 +662,6 @@ set_sysctl(){
     sed -i '/kernel.msgmax/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_max_tw_buckets/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_sack/d' /etc/sysctl.conf
-    sed -i '/net.ipv4.tcp_fack/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_window_scaling/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_rmem/d' /etc/sysctl.conf
     sed -i '/net.ipv4.tcp_wmem/d' /etc/sysctl.conf
@@ -473,7 +721,6 @@ kernel.msgmnb = 65535
 kernel.msgmax = 65535
 net.ipv4.tcp_max_tw_buckets = 6000
 net.ipv4.tcp_sack = 1
-net.ipv4.tcp_fack = 1
 net.ipv4.tcp_window_scaling = 1
 net.ipv4.tcp_rmem = 4096 87380 16777216
 net.ipv4.tcp_wmem = 4096 65536 16777216
@@ -506,7 +753,7 @@ net.ipv4.route.gc_timeout = 100
 net.ipv6.bindv6only = 0
 fs.file-max = 512000
 fs.inotify.max_user_instances = 8192
-vm.swappiness = 0
+vm.swappiness = 1
 net.core.somaxconn = 32768
 net.ipv4.tcp_keepalive_time = 1200
 net.ipv4.tcp_keepalive_probes = 5
@@ -519,72 +766,95 @@ net.ipv4.tcp_congestion_control = bbr
 EOF
 
     msg_info "应用 sysctl 配置..."
-    /sbin/sysctl -p /etc/sysctl.conf 2>/dev/null | awk -F' = ' -v g="$green" -v o="$OK" -v p="$plain" '{printf "  %s%s%s %-35s = %s\n", g, o, p, $1, $2}'
+    /sbin/sysctl -p /etc/sysctl.conf 2>/dev/null | awk -F' = ' -v g="$GREEN" -v o="$OK" -v p="$PLAIN" '{printf "  %s%s%s %-35s = %s\n", g, o, p, $1, $2}'
     msg_ok "网络与内核参数配置完成"
 }
 
 # 检查 BBR 状态
-check_bbr(){
-    kernel_version=$(uname -r | awk -F "-" '{print $1}')
-    if [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "4" ]] && [[ $(echo ${kernel_version} | awk -F'.' '{print $2}') -ge 9 ]] || [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "5" ]] || [[ $(echo ${kernel_version} | awk -F'.' '{print $1}') == "6" ]]; then
-        kernel_status="BBR"
+check_bbr() {
+    local kernel_version=$(uname -r | cut -d'-' -f1)
+    local major_version=$(echo "${kernel_version}" | cut -d'.' -f1)
+    local minor_version=$(echo "${kernel_version}" | cut -d'.' -f2)
+    local patch_version=$(echo "${kernel_version}" | cut -d'.' -f3)
+    local tcp_cc=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
+    local qdisc=$(sysctl -n net.core.default_qdisc 2>/dev/null)
+    if [[ "${major_version}" -gt 4 ]] || [[ "${major_version}" == "4" && "${minor_version}" -ge 9 ]]; then
+        if sysctl net.ipv4.tcp_available_congestion_control 2>/dev/null | grep -qw "bbr"; then
+            kernel_status="BBR"
+        elif command -v lsmod >/dev/null 2>&1 && lsmod 2>/dev/null | grep -qw "tcp_bbr"; then
+            kernel_status="BBR"
+        elif grep -qw "tcp_bbr" /proc/modules 2>/dev/null; then
+            kernel_status="BBR"
+        else
+            kernel_status="noinstall"
+        fi
     else
         kernel_status="noinstall"
     fi
-    
-    if [[ ${kernel_status} == "BBR" ]]; then
-        bbr_run_status=$(cat /proc/sys/net/ipv4/tcp_congestion_control | awk '{print $1}')
-        if [[ ${bbr_run_status} == "bbr" ]]; then
-            bbr_run_status="${green}已启用${plain}"
+    if [[ "${kernel_status}" == "BBR" ]]; then
+        if [[ "${tcp_cc}" == "bbr" ]]; then
+            if [[ "${qdisc}" == "fq" ]]; then
+                bbr_run_status="${GREEN}已启用${PLAIN}"
+            else
+                bbr_run_status="${YELLOW}已启用 BBR，但建议将 net.core.default_qdisc 设为 fq${PLAIN}"
+            fi
         else
-            bbr_run_status="${yellow}未启用${plain}"
+            bbr_run_status="${YELLOW}已支持 BBR，但未启用${PLAIN}"
         fi
     else
-        bbr_run_status="${yellow}内核版本过低（当前: ${kernel_version}，需要 4.9+）${plain}"
+        bbr_run_status="${YELLOW}内核/模块未支持 BBR（当前: ${kernel_version}，需要 4.9+ 且支持 tcp_bbr）${PLAIN}"
     fi
 }
 
 # 配置熵池增强服务
-set_entropy(){
-    entropy_value=$(cat /proc/sys/kernel/random/entropy_avail)
-    if [[ ${entropy_value} -lt 1000 && ${entropy_value} -ne 256 ]]; then
+set_entropy() {
+    local entropy_value
+    entropy_value=$(cat /proc/sys/kernel/random/entropy_avail 2>/dev/null) || entropy_value=0
+    if [[ "${entropy_value}" -lt 1000 && "${entropy_value}" -ne 256 ]]; then
         msg_info "配置熵池增强服务..."
-        if grep -q "rdrand" /proc/cpuinfo; then
-            if [[ x"${release}" == x"centos" ]]; then
+        if grep -q "rdrand" /proc/cpuinfo 2>/dev/null; then
+            if [[ "${release}" == "centos" ]]; then
                 yum -y install rng-tools
-                systemctl enable --now rngd
-            elif [[ x"${release}" == x"ubuntu" ]]; then
-                apt install -y rng-tools
-                systemctl enable --now rngd
-            elif [[ x"${release}" == x"debian" ]]; then
-                apt install -y rng-tools
-                systemctl enable --now rngd
+                systemctl enable --now rngd 2>/dev/null
+            elif [[ "${release}" == "ubuntu" ]] || [[ "${release}" == "debian" ]]; then
+                apt-get install -y rng-tools
+                systemctl enable --now rngd 2>/dev/null
             fi
+            check_command "启动 rngd 服务"
         else
-            if [[ x"${release}" == x"centos" ]]; then
+            if [[ "${release}" == "centos" ]]; then
                 yum -y install haveged
-                systemctl enable --now haveged
-            elif [[ x"${release}" == x"ubuntu" ]]; then
-                apt install -y haveged
-                systemctl enable --now haveged
-            elif [[ x"${release}" == x"debian" ]]; then
-                apt install -y haveged
-                systemctl enable --now haveged
+                systemctl enable --now haveged 2>/dev/null
+            elif [[ "${release}" == "ubuntu" ]] || [[ "${release}" == "debian" ]]; then
+                apt-get install -y haveged
+                systemctl enable --now haveged 2>/dev/null
             fi
+            check_command "启动 haveged 服务"
         fi
         msg_ok "熵池增强服务已启用"
     fi
 }
 
 # 配置 Vim 编辑器
-set_vimserver(){
+set_vim() {
     msg_info "配置 Vim 编辑器..."
-    if [[ x"${release}" == x"centos" ]]; then
-        sys_vimrc=/etc/vimrc
+
+    local sys_vimrc=""
+    local vimrc_target=""
+    if [[ "${release}" == "centos" ]]; then
+        sys_vimrc="/etc/vimrc"
     else
-        sys_vimrc=/etc/vim/vimrc
+        [[ -f "/etc/vim/vimrc" ]] && sys_vimrc="/etc/vim/vimrc"
+        [[ -z "${sys_vimrc}" && -f "/etc/vimrc" ]] && sys_vimrc="/etc/vimrc"
     fi
-    user_vimrc=~/.vimrc
+    local user_vimrc="${HOME}/.vimrc"
+    if [[ -n "${sys_vimrc}" ]]; then
+        vimrc_target="${sys_vimrc}"
+        [[ -e "${vimrc_target}" ]] || touch "${vimrc_target}"
+    else
+        vimrc_target="${user_vimrc}"
+        [[ -e "${vimrc_target}" ]] || touch "${vimrc_target}"
+    fi
     
     for opt in \
         'set cursorline' \
@@ -600,13 +870,13 @@ set_vimserver(){
         'set incsearch' \
         'set ignorecase'
     do
-        grep -Fxq "$opt" "$sys_vimrc" || echo "$opt" >> "$sys_vimrc"
+        grep -Fxq "${opt}" "${vimrc_target}" || echo "${opt}" >> "${vimrc_target}"
     done
 
-    [[ -e $user_vimrc ]] || touch "$user_vimrc"
+    [[ -e "$user_vimrc" ]] || touch "$user_vimrc"
     for enc in \
         'set fileencodings=utf-8,gbk,utf-16le,cp1252,iso-8859-15,ucs-bom' \
-        'set termencoding=utf-8' \
+        'set fileencoding=utf-8' \
         'set encoding=utf-8'
     do
         grep -Fxq "$enc" "$user_vimrc" || echo "$enc" >> "$user_vimrc"
@@ -615,128 +885,183 @@ set_vimserver(){
 }
 
 # 配置 Journald 日志服务
-set_journal(){
+set_journal() {
     msg_info "配置 Journald 日志服务..."
-    [ -e /var/log/journal ] || mkdir /var/log/journal
-    
-    if grep -q "^Storage" /etc/systemd/journald.conf; then
-        sed -i '/^Storage/s/auto/persistent/' /etc/systemd/journald.conf
+    local journal_conf="/etc/systemd/journald.conf"
+    [[ -d /var/log/journal ]] || mkdir -p /var/log/journal
+    if grep -Eq '^[#[:space:]]*Storage=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*Storage=.*|Storage=persistent|' "$journal_conf"
     else
-       sed -i '$a Storage=persistent' /etc/systemd/journald.conf
+        sed -i '$a Storage=persistent' "$journal_conf"
     fi
-    
-    if grep -q "^ForwardToSyslog" /etc/systemd/journald.conf; then
-        sed -i '/^ForwardToSyslog/s/yes/no/' /etc/systemd/journald.conf
+    if grep -Eq '^[#[:space:]]*Compress=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*Compress=.*|Compress=yes|' "$journal_conf"
     else
-       sed -i '$a ForwardToSyslog=no' /etc/systemd/journald.conf
+        sed -i '$a Compress=yes' "$journal_conf"
     fi
-    
-    if grep -q "^ForwardToWall" /etc/systemd/journald.conf; then
-        sed -i '/^ForwardToWall/s/yes/no/' /etc/systemd/journald.conf
+    if grep -Eq '^[#[:space:]]*SystemMaxUse=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*SystemMaxUse=.*|SystemMaxUse=384M|' "$journal_conf"
     else
-       sed -i '$a ForwardToWall=no' /etc/systemd/journald.conf
+        sed -i '$a SystemMaxUse=384M' "$journal_conf"
     fi
-    
-    if grep -q "^SystemMaxUse" /etc/systemd/journald.conf; then
-        sed -i '/^SystemMaxUse/s/.*/SystemMaxUse=384M/' /etc/systemd/journald.conf
+    if grep -Eq '^[#[:space:]]*SystemMaxFileSize=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*SystemMaxFileSize=.*|SystemMaxFileSize=128M|' "$journal_conf"
     else
-       sed -i '$a SystemMaxUse=384M' /etc/systemd/journald.conf
+        sed -i '$a SystemMaxFileSize=128M' "$journal_conf"
     fi
-    
-    if grep -q "^SystemMaxFileSize" /etc/systemd/journald.conf; then
-        sed -i '/^SystemMaxFileSize/s/.*/SystemMaxFileSize=128M/' /etc/systemd/journald.conf
+    if grep -Eq '^[#[:space:]]*RuntimeMaxUse=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*RuntimeMaxUse=.*|RuntimeMaxUse=128M|' "$journal_conf"
     else
-       sed -i '$a SystemMaxFileSize=128M' /etc/systemd/journald.conf
+        sed -i '$a RuntimeMaxUse=128M' "$journal_conf"
     fi
-    
-    systemctl restart systemd-journald
+    if grep -Eq '^[#[:space:]]*ForwardToSyslog=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*ForwardToSyslog=.*|ForwardToSyslog=no|' "$journal_conf"
+    else
+        sed -i '$a ForwardToSyslog=no' "$journal_conf"
+    fi
+    if grep -Eq '^[#[:space:]]*ForwardToWall=' "$journal_conf"; then
+        sed -i 's|^[#[:space:]]*ForwardToWall=.*|ForwardToWall=no|' "$journal_conf"
+    else
+        sed -i '$a ForwardToWall=no' "$journal_conf"
+    fi
+    systemctl daemon-reload 2>/dev/null
+    systemctl restart systemd-journald 2>/dev/null
+    journalctl --flush >/dev/null 2>&1
+    check_command "重启 systemd-journald"
     msg_ok "Journald 日志服务配置完成"
 }
 
 # 配置 Readline 快捷键
-set_readlines(){
+set_readline() {
     msg_info "配置 Readline 快捷键..."
-    if grep -q '^"\\e.*": history-search-backward' /etc/inputrc; then
-        sed -i 's/^"\\e.*": history-search-backward/"\\e\[A": history-search-backward/g' /etc/inputrc
+    local inputrc="/etc/inputrc"
+    [ -e "${inputrc}" ] || touch "${inputrc}"
+    if grep -q '^"\\e.*": history-search-backward' "${inputrc}"; then
+        sed -i 's/^"\\e.*": history-search-backward/"\\e\[A": history-search-backward/g' "${inputrc}"
     else
-        sed -i '$a # map "up arrow" to search the history based on lead characters typed' /etc/inputrc
-        sed -i '$a "\\e\[A": history-search-backward' /etc/inputrc
+        sed -i '$a # map "up arrow" to search the history based on lead characters typed' "${inputrc}"
+        sed -i '$a "\\e\[A": history-search-backward' "${inputrc}"
     fi
     
-    if grep -q '^"\\e.*": history-search-forward' /etc/inputrc; then
-        sed -i 's/^"\\e.*": history-search-forward/"\\e\[B": history-search-forward/g' /etc/inputrc
+    if grep -q '^"\\e.*": history-search-forward' "${inputrc}"; then
+        sed -i 's/^"\\e.*": history-search-forward/"\\e\[B": history-search-forward/g' "${inputrc}"
     else
-        sed -i '$a # map "down arrow" to search history based on lead characters typed' /etc/inputrc
-        sed -i '$a "\\e\[B": history-search-forward' /etc/inputrc
+        sed -i '$a # map "down arrow" to search history based on lead characters typed' "${inputrc}"
+        sed -i '$a "\\e\[B": history-search-forward' "${inputrc}"
     fi
     
-    if grep -q '"\\e.*": kill-word' /etc/inputrc; then
-        sed -i 's/"\\e.*": kill-word/"\\e[3;3~": kill-word/g' /etc/inputrc
+    if grep -q '"\\e.*": kill-word' "${inputrc}"; then
+        sed -i 's/"\\e.*": kill-word/"\\e[3;3~": kill-word/g' "${inputrc}"
     else
-        sed -i '$a # map ALT+Delete to remove word forward' /etc/inputrc
-        sed -i '$a "\\e[3;3~": kill-word' /etc/inputrc
+        sed -i '$a # map ALT+Delete to remove word forward' "${inputrc}"
+        sed -i '$a "\\e[3;3~": kill-word' "${inputrc}"
     fi
     msg_ok "Readline 快捷键配置完成"
 }
 
-# 配置虚拟化驱动（Centos外置virtio-blk和xen-blkfront）
-set_drivers(){
-    if [[ x"${release}" == x"centos" ]]; then
+# 配置虚拟化驱动（CentOS 外置 virtio-blk 和 xen-blkfront），安装或升级kernel时可能会出现的驱动问题，仅修复不重建
+set_driver() {
+    if [[ "${release}" == "centos" ]]; then
+        msg_info "检查虚拟化驱动..."
+        local dracut_conf="/etc/dracut.conf.d/virt-drivers.conf"
+        local drivers='add_drivers+=" xen-blkfront virtio_blk "'
+        local initramfs="/boot/initramfs-$(uname -r).img"
+        if [[ -f "${initramfs}" ]] && command -v lsinitrd >/dev/null 2>&1 && lsinitrd "${initramfs}" 2>/dev/null | grep -qE 'virtio_blk|xen-blkfront'; then
+            msg_ok "虚拟化驱动已包含在 initramfs 中，无需配置"
+            return 0
+        fi
         msg_info "配置虚拟化驱动..."
-        if [ ! -e /etc/dracut.conf.d/virt-drivers.conf ]; then
-            echo 'add_drivers+=" xen-blkfront virtio_blk "' >> /etc/dracut.conf.d/virt-drivers.conf
+        mkdir -p /etc/dracut.conf.d 2>/dev/null || true
+        if [[ ! -f "${dracut_conf}" ]] || ! grep -qs 'add_drivers.*xen-blkfront' "${dracut_conf}" 2>/dev/null || ! grep -qs 'add_drivers.*virtio_blk' "${dracut_conf}" 2>/dev/null; then
+            echo "${drivers}" > "${dracut_conf}"
+            check_command "配置虚拟化驱动"
         else
-            if ! grep -wq "xen-blkfront" /etc/dracut.conf.d/virt-drivers.conf; then
-                echo 'add_drivers+=" xen-blkfront virtio_blk "' >> /etc/dracut.conf.d/virt-drivers.conf
-            fi
+            msg_info "虚拟化驱动配置已存在"
         fi
         msg_ok "虚拟化驱动配置完成"
     fi
 }
 
 # 配置登录欢迎信息
-set_welcome(){
+set_motd() {
     msg_info "配置登录欢迎信息..."
-    if [ ! -e /etc/profile.d/motd.sh ]; then
-        wget --timeout=30 --tries=3 -O /etc/profile.d/motd.sh https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/motd.sh
+    if [[ ! -e /etc/profile.d/motd.sh ]]; then
+        wget --timeout=30 --tries=3 -O /etc/profile.d/motd.sh "https://${GITHUB_RAW_URL}/myxuchangbin/shellscript/main/motd.sh"
         chmod a+x /etc/profile.d/motd.sh
     fi
     msg_ok "登录欢迎信息配置完成"
 }
 
+# 脚本自删除
+remove_self() {
+    local script_path="${BASH_SOURCE[0]:-$0}"
+    if [[ -f "$script_path" ]]; then
+        rm -f "$script_path"
+    fi
+}
+
+# 显示执行摘要
+show_summary() {
+    # SSH 密钥部署提醒
+    if [[ "${DEPLOY_SSH_KEY}" == "true" ]]; then
+        echo -e "${YELLOWFLASH}${WARN} 安全提醒：/root/.ssh/authorized_keys 已写入 SSH 公钥${PLAIN}"
+        echo -e "${YELLOWFLASH}           若非本人操作，请立即手动删除公钥！${PLAIN}\n"
+    fi
+    echo -e "${INFO} BBR 状态：${bbr_run_status}  |  完成时间：$(date '+%F %T')\n"
+}
+
+# 退出清理（trap 调用）
+trap_exit() {
+    local exit_code=$?
+    rm -f /tmp/id_rsa_4096.pub 2>/dev/null || true
+    if [[ ${exit_code} -ne 0 ]]; then
+        msg_error "脚本异常退出（退出码: ${exit_code}）"
+    fi
+    exit ${exit_code}
+}
+
 # 主函数
-main(){
+main() {
+    check_root
+    parse_args "$@"
+    detect_os
+    check_version
+
     # 开始边框
-    echo -e "\n${green}╔════════════════════════════════════════════════╗${plain}"
-    echo -e "${green}║${plain}     系统初始化优化脚本 - 开始执行              ${green}║${plain}"
-    echo -e "${green}╚════════════════════════════════════════════════╝${plain}\n"
-    
-    install
-    set_security
-    set_file
+    echo -e "\n${GREEN}╔════════════════════════════════════════════════╗${PLAIN}"
+    echo -e "${GREEN}║${PLAIN}     系统初始化优化脚本 - 开始执行              ${GREEN}║${PLAIN}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════╝${PLAIN}\n"
+
+    install_pkg
+    set_ssh
+    set_selinux
+    [[ "${DEPLOY_SSH_KEY}" == "true" ]] && deploy_sshkey
+    set_timezone
+    set_history
+    set_ctrlaltdel
+    set_locale
+    set_drop_cache
+    set_limit
     set_sysctl
     check_bbr
     set_entropy
-    set_vimserver
+    set_vim
     set_journal
-    set_readlines
-    set_drivers
-    set_welcome
+    set_readline
+    set_driver
+    set_motd
     
     # 结束边框
-    echo -e "\n${green}╔════════════════════════════════════════════════╗${plain}"
-    echo -e "${green}║${plain}     系统初始化优化脚本 - 执行完毕              ${green}║${plain}"
-    echo -e "${green}╚════════════════════════════════════════════════╝${plain}\n"
+    echo -e "\n${GREEN}╔════════════════════════════════════════════════╗${PLAIN}"
+    echo -e "${GREEN}║${PLAIN}     系统初始化优化脚本 - 执行完毕              ${GREEN}║${PLAIN}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════╝${PLAIN}\n"
+
+    show_summary
+    # remove_self
 }
 
-main
+# 设置清理陷阱
+trap trap_exit EXIT INT TERM
 
-rm -f "$0" 2>/dev/null || true
-history -c
-
-if [[ "${import_key}" == "1" ]]; then
-    echo -e "${yellowflash}${WARN} 安全提醒：/root/.ssh/authorized_keys 已写入 SSH 公钥${plain}"
-    echo -e "${yellowflash}           若非本人操作，请立即手动删除公钥！${plain}\n"
-fi
-
-echo -e "${INFO} BBR 状态：${bbr_run_status}  |  完成时间：$(date '+%F %T')\n"
+# 执行主函数
+main "$@"
