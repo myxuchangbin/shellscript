@@ -762,7 +762,7 @@ net.ipv4.tcp_congestion_control = bbr
 EOF
 
     msg_info "应用 sysctl 配置..."
-    /sbin/sysctl -p /etc/sysctl.conf 2>/dev/null | awk -F' = ' -v g="$GREEN" -v o="$OK" -v p="$PLAIN" '{printf "  %s%s%s %-35s = %s\n", g, o, p, $1, $2}'
+    /sbin/sysctl -p /etc/sysctl.conf 2>/dev/null | awk -F' = ' -v g="$GREEN" -v o="$OK" -v p="$PLAIN" '{printf "  %s%s%s %-35s = %s\n", g, o, p, $1, $2}' || true
     msg_ok "网络与内核参数配置完成"
 }
 
