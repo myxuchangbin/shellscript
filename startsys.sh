@@ -294,7 +294,7 @@ install_pkg() {
             yum clean all; check_command "yum clean"
             yum makecache -y; check_command "yum makecache"
             yum -y install epel-release; check_command "安装 epel-release"
-            yum -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python-devel python-pip python3-devel python3-pip socat nc mtr bind-utils yum-utils ntpdate chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo
+            yum -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python-devel python-pip python3-devel python3-pip socat nc mtr bind-utils yum-utils ntpdate chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo openssh-server
             check_command "安装基础工具包"
             update-ca-trust force-enable; check_command "更新 CA 证书"
         else
@@ -307,7 +307,7 @@ install_pkg() {
             fi
             dnf makecache -y
             dnf -y install epel-release; check_command "安装 epel-release"
-            dnf -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python3-devel python3-pip socat nc mtr bind-utils yum-utils chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
+            dnf -y install vim wget curl zip unzip bash-completion lrzsz crontabs libsodium tar lsof nload screen python3-devel python3-pip socat nc mtr bind-utils yum-utils chrony gcc gcc-c++ make iftop traceroute net-tools vnstat pciutils iperf3 iotop htop sysstat cmake openssl openssl-devel gnutls ca-certificates systemd sudo openssh-server libmodulemd langpacks-zh_CN glibc-locale-source glibc-langpack-en
             check_command "安装基础工具包"
         fi
     elif [[ "${release}" == "ubuntu" ]]; then
@@ -316,7 +316,7 @@ install_pkg() {
         echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
         echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
         echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
-        apt-get install -y --no-install-recommends vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales
+        apt-get install -y --no-install-recommends vim wget curl lrzsz tar lsof unzip dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales openssh-server
         check_command "安装基础工具包"
         update-ca-certificates; check_command "更新 CA 证书"
     elif [[ "${release}" == "debian" ]]; then
@@ -333,7 +333,7 @@ EOF
         echo "iperf3 iperf3/start_daemon boolean false" | debconf-set-selections
         echo "libc6 glibc/restart-services string ssh exim4 cron" | debconf-set-selections
         echo "*	libraries/restart-without-asking	boolean	true" | debconf-set-selections
-        apt-get install -y --no-install-recommends vim wget curl lrzsz tar lsof dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales
+        apt-get install -y --no-install-recommends vim wget curl lrzsz tar unzip lsof dnsutils nload iperf3 screen cron chrony openssl libsodium-dev libgnutls30 ca-certificates systemd python3-dev python3-pip locales openssh-server
         check_command "安装基础工具包"
         update-ca-certificates; check_command "更新 CA 证书"
     fi
