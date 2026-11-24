@@ -600,6 +600,7 @@ set_locale() {
     msg_info "配置系统字符集..."
     if [[ "${release}" == "centos" ]]; then
         localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8 >/dev/null 2>&1 || true
+        localedef -c -f UTF-8 -i en_US en_US.UTF-8 >/dev/null 2>&1 || true
         if command -v localectl >/dev/null 2>&1; then
             localectl set-locale LANG=zh_CN.UTF-8 >/dev/null 2>&1 || true
         fi
@@ -610,11 +611,19 @@ set_locale() {
         fi
     else
         if [[ -f /etc/locale.gen ]]; then
-            sed -i 's/^[#[:space:]]*zh_CN\.UTF-8[[:space:]]\+UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen
+            sed -i \
+                -e 's/^[#[:space:]]*zh_CN\.UTF-8[[:space:]]\+UTF-8/zh_CN.UTF-8 UTF-8/' \
+                -e 's/^[#[:space:]]*en_US\.UTF-8[[:space:]]\+UTF-8/en_US.UTF-8 UTF-8/' \
+                /etc/locale.gen
             grep -q '^zh_CN.UTF-8[[:space:]]\+UTF-8' /etc/locale.gen || echo "zh_CN.UTF-8 UTF-8" >> /etc/locale.gen
+            grep -q '^en_US.UTF-8[[:space:]]\+UTF-8' /etc/locale.gen || echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
         fi
-        command -v locale-gen >/dev/null 2>&1 && locale-gen zh_CN.UTF-8 >/dev/null 2>&1 || true
-        command -v update-locale >/dev/null 2>&1 && update-locale LANG=zh_CN.UTF-8 >/dev/null 2>&1 || true
+        if command -v locale-gen >/dev/null 2>&1; then
+            env LANG=C LC_ALL=C locale-gen zh_CN.UTF-8 en_US.UTF-8 >/dev/null 2>&1 || true
+        fi
+        if command -v update-locale >/dev/null 2>&1; then
+            env LANG=C LC_ALL=C update-locale LANG=zh_CN.UTF-8 >/dev/null 2>&1 || true
+        fi
         if [[ -f /etc/default/locale ]]; then
             grep -q '^LANG=' /etc/default/locale 2>/dev/null && \
                 sed -i 's/^LANG=.*/LANG=zh_CN.UTF-8/' /etc/default/locale || \
